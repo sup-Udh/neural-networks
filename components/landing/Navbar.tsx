@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -9,9 +10,9 @@ export default function Navbar() {
   return (
     <header className="site-header">
       <div className="nav-wrap">
-        <a className="brand-lockup" href="#home" aria-label="NeuralArc home" onClick={closeMenu}>
+        <Link className="brand-lockup" href="/" aria-label="NeuralArc home" onClick={closeMenu}>
           <span>Neural<span>Arc</span></span>
-        </a>
+        </Link>
         <button
           className={`menu-toggle ${menuOpen ? "is-open" : ""}`}
           type="button"
@@ -23,9 +24,9 @@ export default function Navbar() {
           <span /><span />
         </button>
         <nav className={`primary-nav ${menuOpen ? "menu-open" : ""}`} id="primary-navigation" aria-label="Main navigation">
-          <a href="#home" onClick={closeMenu}>Home</a>
-          <a href="#about" onClick={closeMenu}>About</a>
-          <a className="nav-cta" href="#playground" onClick={closeMenu}>Get Started <span aria-hidden="true">↗</span></a>
+          <Link href="/#home" onClick={closeMenu}>Home</Link>
+          <Link href="/#about" onClick={closeMenu}>About</Link>
+          <Link className="nav-cta" href="/get-started" onClick={closeMenu}>Get Started <span aria-hidden="true">↗</span></Link>
         </nav>
       </div>
     </header>

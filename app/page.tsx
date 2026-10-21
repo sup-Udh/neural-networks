@@ -172,7 +172,7 @@ export default function Home() {
             <div className="eyebrow"><span />The first signal is yours</div>
             <h2 id="cta-title">Your first neural<br />network starts here.</h2>
             <p>Stop treating AI like a black box. Start exploring what makes it work.</p>
-            <a className="button button-primary" href="#playground">Get Started <ArrowIcon /></a>
+            <a className="button button-primary" href="/get-started">Get Started <ArrowIcon /></a>
           </div>
           <div className="cta-stamp" aria-hidden="true"><span>N</span><i>EST. IN CURIOSITY</i></div>
         </section>

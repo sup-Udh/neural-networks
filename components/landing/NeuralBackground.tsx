@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 type NodePoint = { x: number; y: number; vx: number; vy: number; phase: number; tone: number };
 type Pulse = { from: number; to: number; progress: number; speed: number };
 
-export default function NeuralBackground() {
+export default function NeuralBackground({ variant = "landing" }: { variant?: "landing" | "onboarding" }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -26,7 +26,9 @@ export default function NeuralBackground() {
 
     const createNodes = () => {
       const density = mobileQuery.matches ? 0.000033 : width < 900 ? 0.000055 : 0.000062;
-      const count = Math.max(mobileQuery.matches ? 22 : 40, Math.min(mobileQuery.matches ? 32 : 86, Math.round(width * height * density)));
+      const count = variant === "onboarding"
+        ? mobileQuery.matches ? 26 : 40
+        : Math.max(mobileQuery.matches ? 22 : 40, Math.min(mobileQuery.matches ? 32 : 86, Math.round(width * height * density)));
       nodes = Array.from({ length: count }, (_, index) => ({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -61,7 +63,7 @@ export default function NeuralBackground() {
       const delta = Math.min(time - (lastTime || time), 40);
       lastTime = time;
       context.clearRect(0, 0, width, height);
-      const distance = mobileQuery.matches ? 100 : 142;
+      const distance = variant === "onboarding" ? (mobileQuery.matches ? 94 : 120) : mobileQuery.matches ? 100 : 142;
       const distanceSquared = distance * distance;
 
       for (const node of nodes) {
@@ -138,7 +140,7 @@ export default function NeuralBackground() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       reducedMotion.removeEventListener("change", onMotionChange);
     };
-  }, []);
+  }, [variant]);
 
   return <canvas className="neural-background" ref={canvasRef} aria-hidden="true" />;
 }
