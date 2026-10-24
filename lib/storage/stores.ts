@@ -42,6 +42,16 @@ export const progressStore = createPersistedStore<Progress>("neuralarc:v1:progre
   typeof (data as Progress | null)?.challengeComplete === "boolean" ? { challengeComplete: (data as Progress).challengeComplete } : null,
 );
 
+export interface FocusPrefs {
+  /** Enter focus reading automatically after inactivity. Manual focus works either way. */
+  auto: boolean;
+  delaySec: number;
+}
+export const focusStore = createPersistedStore<FocusPrefs>("neuralarc:v1:focus", 1, { auto: true, delaySec: 13 }, (data) => {
+  const d = data as FocusPrefs | null;
+  return d && typeof d.auto === "boolean" && typeof d.delaySec === "number" ? { auto: d.auto, delaySec: Math.min(15, Math.max(12, Math.round(d.delaySec))) } : null;
+});
+
 export function usePersisted<T>(store: PersistedStore<T>): T {
   return useSyncExternalStore(store.subscribe, store.get, store.getServer);
 }

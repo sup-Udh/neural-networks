@@ -14,7 +14,7 @@ const keepSelection = (event: React.MouseEvent) => event.preventDefault();
 
 export default function CompanionSpeechBubble({ message, onAccept, onClear, onDismiss, docked }: CompanionSpeechBubbleProps) {
   return (
-    <div className={`companion-bubble ${docked ? "companion-bubble-docked" : ""}`} role="status">
+    <div className={`companion-bubble ${docked ? "companion-bubble-docked" : ""}`} role="status" data-fr-block>
       <button className="companion-bubble-close" type="button" aria-label="Dismiss" onMouseDown={keepSelection} onClick={onDismiss}>×</button>
       <p>{message}</p>
       <div className="companion-bubble-actions">

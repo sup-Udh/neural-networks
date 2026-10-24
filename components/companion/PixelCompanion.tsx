@@ -24,6 +24,12 @@ interface PixelCompanionProps {
   reducedMotion?: boolean;
   paused?: boolean;
   replayKey?: number;
+  /** Show the "Want to unpack this?" bubble on selection. Off when the page supplies its own selection toolbar. */
+  selectionPrompt?: boolean;
+  /** Elements whose text selections are ignored (controls, diagrams, editors). */
+  selectionExclude?: string;
+  /** Focus Reading Mode: stop following and moving, and let the page hide the sprite. Resumes with a silent re-anchor. */
+  suspended?: boolean;
   ref?: Ref<PixelCompanionHandle>;
 }
 
@@ -42,7 +48,7 @@ const MODE_STATE: Record<PerchMode, AnimationState> = { stand: "idle", hang: "ha
 const NO_TRAVEL = { ms: 0, arc: 0, ease: "linear", key: 0 };
 
 export default function PixelCompanion({
-  character, size = 24, stageRef, sectionIds, activeId, contentSelector, reducedMotion, paused, replayKey, ref,
+  character, size = 24, stageRef, sectionIds, activeId, contentSelector, reducedMotion, paused, replayKey, selectionPrompt = true, selectionExclude, suspended = false, ref,
 }: PixelCompanionProps) {
   const systemReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const reduced = reducedMotion ?? systemReduced;
@@ -314,20 +320,20 @@ export default function PixelCompanion({
   }, [follow]);
 
   useEffect(() => {
-    if (minimized || reduced || docked) return;
+    if (minimized || reduced || docked || suspended) return;
     window.addEventListener("scroll", scheduleFollow, { passive: true });
     return () => {
       window.removeEventListener("scroll", scheduleFollow);
       window.clearTimeout(followTimer.current);
       followTimer.current = 0;
     };
-  }, [minimized, reduced, docked, scheduleFollow]);
+  }, [minimized, reduced, docked, suspended, scheduleFollow]);
 
   // A new active section is also a reason to re-evaluate (it may now be in reach to perch on).
   useEffect(() => {
-    if (minimized || reduced || docked || !activeId) return;
+    if (minimized || reduced || docked || suspended || !activeId) return;
     scheduleFollow();
-  }, [activeId, minimized, reduced, docked, scheduleFollow]);
+  }, [activeId, minimized, reduced, docked, suspended, scheduleFollow]);
 
   // First placement (and re-opening after minimising): no animation.
   useEffect(() => {
@@ -344,7 +350,7 @@ export default function PixelCompanion({
   // Re-anchor without animation when the layout changes (resize, font load, content height).
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage || minimized || docked || typeof ResizeObserver === "undefined") return;
+    if (!stage || minimized || docked || suspended || typeof ResizeObserver === "undefined") return;
     let timer = 0;
     const observer = new ResizeObserver(() => {
       window.clearTimeout(timer);
@@ -360,7 +366,27 @@ export default function PixelCompanion({
       observer.disconnect();
       window.clearTimeout(timer);
     };
-  }, [stageRef, minimized, docked, follow]);
+  }, [stageRef, minimized, docked, suspended, follow]);
+
+  // Entering focus cancels any trip in progress; leaving it re-anchors without animation.
+  const wasSuspended = useRef(false);
+  useEffect(() => {
+    if (suspended === wasSuspended.current) return;
+    wasSuspended.current = suspended;
+    const timer = window.setTimeout(() => {
+      if (suspended) {
+        clear();
+        window.clearTimeout(followTimer.current);
+        followTimer.current = 0;
+        setTravel(NO_TRAVEL);
+        setRate(1);
+      } else if (posRef.current && !inspecting.current) {
+        perched.current = "";
+        follow(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [suspended, clear, follow]);
 
   // Reduced motion: drop whatever was running and show the still pose.
   useEffect(() => {
@@ -391,7 +417,7 @@ export default function PixelCompanion({
       autoEnd.current = 0;
       const l = lane();
       if (!l) return;
-      setBubble({ message, prompt });
+      if (message) setBubble({ message, prompt });
       // Stand in the margin level with the first selected line and point the magnifier at it.
       moveTo({ x: l.stand, ledge: Math.round(first.bottom - sr.top - 3) }, "inspect");
       if (autoEndMs) {
@@ -405,7 +431,7 @@ export default function PixelCompanion({
     [stageRef, lane, moveTo, returnFromInspect],
   );
 
-  const selection = useTextSelection(contentSelector, !minimized);
+  const selection = useTextSelection(contentSelector, !minimized, selectionExclude);
   useEffect(() => {
     if (!selection) {
       dismissedText.current = null;
@@ -421,10 +447,10 @@ export default function PixelCompanion({
     if (dismissedText.current === selection.text) return;
     const timer = window.setTimeout(() => {
       selectionText.current = selection.text;
-      startInspect(selection.first, selection.last, "Want to unpack this?", true);
+      startInspect(selection.first, selection.last, selectionPrompt ? "Want to unpack this?" : "", selectionPrompt);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [selection, startInspect, returnFromInspect]);
+  }, [selection, startInspect, returnFromInspect, selectionPrompt]);
 
   const dismiss = useCallback(() => {
     dismissedText.current = selectionText.current;
@@ -467,7 +493,7 @@ export default function PixelCompanion({
           });
         });
       },
-      celebrate: () => {
+      celebrate: (message) => {
         clear();
         window.clearTimeout(autoEnd.current);
         autoEnd.current = 0;
@@ -475,7 +501,7 @@ export default function PixelCompanion({
         setJumpFrame(undefined);
         setTravel(NO_TRAVEL);
         setState("celebrate");
-        setBubble({ message: "Nice work!", prompt: false });
+        if (message !== null) setBubble({ message: message ?? "Nice work!", prompt: false });
         at(2000, () => {
           setBubble(null);
           setState(restState.current);

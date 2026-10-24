@@ -108,7 +108,7 @@ export default function NeuronViz() {
   };
 
   return (
-    <figure className="nv" data-no-toolbar>
+    <figure className="nv" data-no-toolbar data-fr-busy={status === "playing" || undefined}>
       <svg viewBox="0 0 640 270" role="group" aria-label="Diagram of a neuron with two inputs, two weights, a bias and one output">
         {weightEdge("w1", e1, p.w1, r.products[0], "w₁", "x₁")}
         {weightEdge("w2", e2, p.w2, r.products[1], "w₂", "x₂")}

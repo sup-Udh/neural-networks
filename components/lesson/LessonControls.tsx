@@ -88,7 +88,7 @@ export function PlaybackControls() {
   const started = step !== null;
   const info = describeStep(lesson.params, step ?? STEP_COUNT - 1);
   return (
-    <div className="lc-playback" data-no-toolbar>
+    <div className="lc-playback" data-no-toolbar data-fr-busy={playing || undefined}>
       <div className="lc-buttons" role="group" aria-label="Playback controls">
         <button type="button" className="is-primary" onClick={lesson.run} disabled={playing || paused}>Run</button>
         <button type="button" onClick={lesson.pause} disabled={!playing}>Pause</button>

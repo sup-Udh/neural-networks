@@ -16,6 +16,7 @@ export type Frame = { pixels: Pixel[]; ms: number };
 export interface PixelCompanionHandle {
   /** Play a state in place (development and manual triggers). */
   play: (state: AnimationState) => void;
-  celebrate: () => void;
+  /** A short hop with Lime sparks. Pass `null` for no speech bubble, or a message to replace "Nice work!". */
+  celebrate: (message?: string | null) => void;
   inspect: (element: Element) => void;
 }
