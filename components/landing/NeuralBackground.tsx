@@ -114,7 +114,7 @@ export default function NeuralBackground({ variant = "landing" }: { variant?: "l
         }
         const x = start.x + (end.x - start.x) * pulse.progress;
         const y = start.y + (end.y - start.y) * pulse.progress;
-        context.fillStyle = "rgba(243,112,30,0.6)";
+        context.fillStyle = "rgba(92,120,245,0.55)";
         context.beginPath();
         context.arc(x, y, 1.5, 0, Math.PI * 2);
         context.fill();
@@ -122,7 +122,7 @@ export default function NeuralBackground({ variant = "landing" }: { variant?: "l
 
       for (const node of nodes) {
         const radius = node.tone === 2 ? 1.7 : node.tone === 1 ? 1.4 : 1;
-        const color = node.tone === 2 ? "243,112,30" : node.tone === 1 ? "232,216,201" : "85,96,109";
+        const color = node.tone === 2 ? "92,120,245" : node.tone === 1 ? "146,153,163" : "85,96,109";
         const opacity = node.tone === 2 ? 0.55 : node.tone === 1 ? 0.35 : 0.5;
         context.fillStyle = `rgba(${color},${opacity})`;
         context.beginPath();

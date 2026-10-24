@@ -27,7 +27,7 @@ export default function NeuralPreview() {
         <div className="network-chart">
           <svg viewBox="0 0 620 270" role="img" aria-label={`A small neural network: input ${input.toFixed(2)}, hidden activations ${hiddenA.toFixed(2)} and ${hiddenB.toFixed(2)}, output ${output.toFixed(2)}.`}>
             <defs>
-              <linearGradient id="signalGradient"><stop stopColor="#f3701e" stopOpacity=".9"/><stop offset="1" stopColor="#f3701e" stopOpacity=".08"/></linearGradient>
+              <linearGradient id="signalGradient"><stop stopColor="#5c78f5" stopOpacity=".9"/><stop offset="1" stopColor="#5c78f5" stopOpacity=".08"/></linearGradient>
             </defs>
             <g className="chart-edges">
               <path d="M105 83 302 65M105 83 302 205M105 190 302 65M105 190 302 205M302 65 510 135M302 205 510 135" />
