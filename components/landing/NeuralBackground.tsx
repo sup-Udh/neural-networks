@@ -23,19 +23,20 @@ export default function NeuralBackground({ variant = "landing" }: { variant?: "l
     let pulses: Pulse[] = [];
     let isVisible = !document.hidden;
     let motionAllowed = !reducedMotion.matches;
+    let staticDrawn = false;
 
     const createNodes = () => {
-      const density = mobileQuery.matches ? 0.000033 : width < 900 ? 0.000055 : 0.000062;
+      const density = mobileQuery.matches ? 0.000033 : width < 900 ? 0.000032 : 0.000036;
       const count = variant === "onboarding"
-        ? mobileQuery.matches ? 26 : 40
-        : Math.max(mobileQuery.matches ? 22 : 40, Math.min(mobileQuery.matches ? 32 : 86, Math.round(width * height * density)));
+        ? mobileQuery.matches ? 16 : 26
+        : Math.max(mobileQuery.matches ? 14 : 24, Math.min(mobileQuery.matches ? 20 : 48, Math.round(width * height * density)));
       nodes = Array.from({ length: count }, (_, index) => ({
         x: Math.random() * width,
         y: Math.random() * height,
         vx: (Math.random() - 0.5) * 0.17,
         vy: (Math.random() - 0.5) * 0.17,
         phase: Math.random() * Math.PI * 2,
-        tone: index % 19 === 0 ? 2 : index % 5 === 0 ? 1 : 0,
+        tone: index % 23 === 0 ? 2 : index % 9 === 0 ? 1 : 0,
       }));
       pulses = Array.from({ length: 3 }, () => ({
         from: Math.floor(Math.random() * count),
@@ -55,12 +56,16 @@ export default function NeuralBackground({ variant = "landing" }: { variant?: "l
       canvas.style.height = `${height}px`;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       createNodes();
+      staticDrawn = false;
     };
 
     const animate = (time: number) => {
       frame = window.requestAnimationFrame(animate);
-      if (!isVisible || !motionAllowed) return;
-      const delta = Math.min(time - (lastTime || time), 40);
+      if (!isVisible) return;
+      if (!motionAllowed && staticDrawn) return;
+      // Reduced motion: paint a single still frame instead of animating.
+      const delta = motionAllowed ? Math.min(time - (lastTime || time), 40) : 0;
+      staticDrawn = !motionAllowed;
       lastTime = time;
       context.clearRect(0, 0, width, height);
       const distance = variant === "onboarding" ? (mobileQuery.matches ? 94 : 120) : mobileQuery.matches ? 100 : 142;
@@ -86,8 +91,8 @@ export default function NeuralBackground({ variant = "landing" }: { variant?: "l
           const dy = node.y - other.y;
           const d2 = dx * dx + dy * dy;
           if (d2 < distanceSquared) {
-            const opacity = 0.14 * (1 - Math.sqrt(d2) / distance);
-            context.strokeStyle = `rgba(75,96,127,${opacity})`;
+            const opacity = 0.09 * (1 - Math.sqrt(d2) / distance);
+            context.strokeStyle = `rgba(85,96,109,${opacity})`;
             context.lineWidth = 0.7;
             context.beginPath();
             context.moveTo(node.x, node.y);
@@ -109,16 +114,16 @@ export default function NeuralBackground({ variant = "landing" }: { variant?: "l
         }
         const x = start.x + (end.x - start.x) * pulse.progress;
         const y = start.y + (end.y - start.y) * pulse.progress;
-        context.fillStyle = "rgba(243,112,30,0.8)";
+        context.fillStyle = "rgba(243,112,30,0.6)";
         context.beginPath();
-        context.arc(x, y, 1.8, 0, Math.PI * 2);
+        context.arc(x, y, 1.5, 0, Math.PI * 2);
         context.fill();
       }
 
       for (const node of nodes) {
-        const radius = node.tone === 2 ? 2.3 : node.tone === 1 ? 1.8 : 1.2;
-        const color = node.tone === 2 ? "243,112,30" : node.tone === 1 ? "232,216,201" : "75,96,127";
-        const opacity = node.tone === 2 ? 0.67 + Math.sin(node.phase) * 0.12 : node.tone === 1 ? 0.42 : 0.52;
+        const radius = node.tone === 2 ? 1.7 : node.tone === 1 ? 1.4 : 1;
+        const color = node.tone === 2 ? "243,112,30" : node.tone === 1 ? "232,216,201" : "85,96,109";
+        const opacity = node.tone === 2 ? 0.55 : node.tone === 1 ? 0.35 : 0.5;
         context.fillStyle = `rgba(${color},${opacity})`;
         context.beginPath();
         context.arc(node.x, node.y, radius, 0, Math.PI * 2);
@@ -126,7 +131,7 @@ export default function NeuralBackground({ variant = "landing" }: { variant?: "l
       }
     };
 
-    const onMotionChange = (event: MediaQueryListEvent) => { motionAllowed = !event.matches; };
+    const onMotionChange = (event: MediaQueryListEvent) => { motionAllowed = !event.matches; staticDrawn = false; };
     const onVisibilityChange = () => { isVisible = !document.hidden; };
     resize();
     frame = window.requestAnimationFrame(animate);
