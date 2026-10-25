@@ -69,6 +69,9 @@ function DocsView() {
     toastTimer.current = window.setTimeout(() => setToast(""), 2600);
   }, []);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+  useEffect(() => {
+    try { window.localStorage.setItem("neuralarc:v1:last-lesson", "neuron-basics"); } catch { /* Storage may be unavailable. */ }
+  }, []);
 
   const clearSelection = () => window.getSelection()?.removeAllRanges();
   const fallbackSection = (p: Passage) => p.sectionId || activeId || SECTION_IDS[0];
@@ -110,6 +113,7 @@ function DocsView() {
         <Link className="brand-lockup" href="/" aria-label="NeuralArc home">
           <span>Neural<span>Arc</span></span>
         </Link>
+        <Link className="docs-header-link" href="/world">← The Neural Frontier</Link>
         <span className="docs-header-path">Field guide / Neural networks / Lesson 01</span>
         <ReadingZoom />
         <FocusReadingControls focus={focus} />

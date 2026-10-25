@@ -91,7 +91,7 @@ export default function CompanionPicker() {
       </div>
       <div className="companion-action">
         {selected ? (
-          <Link className="companion-continue" href="/learn/docs" onClick={() => saveCompanion(selected)}>
+          <Link className="companion-continue" href="/world" onClick={() => saveCompanion(selected)}>
             Enter the World as {selected === "rune" ? "Rune" : "Sol"}
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
           </Link>
