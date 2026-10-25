@@ -1,4 +1,4 @@
-import { GRID, REGIONS, RIVER_TILES, ROUTE_TILES, TILE, WOODLANDS, WORLD } from "./mapData";
+import { GRID, REGIONS, RIVER_TILES, TILE, WOODLANDS, WORLD } from "./mapData";
 
 export type GroundTile = number | "stone" | "sand";
 export interface WorldProp { asset: string; x: number; y: number; width?: number; height?: number; order?: number; }
@@ -10,7 +10,7 @@ const stone = new Set<string>();
 
 function rasterLine(points: readonly (readonly [number, number])[], visit: (x: number, y: number) => void) {
   for (let i=0;i<points.length-1;i++) {
-    let [x0,y0]=points[i], [x1,y1]=points[i+1];
+    let [x0,y0]=points[i]; const [x1,y1]=points[i+1];
     const dx=Math.abs(x1-x0), sx=x0<x1?1:-1, dy=-Math.abs(y1-y0), sy=y0<y1?1:-1;
     let error=dx+dy;
     for (;;) { visit(x0,y0); if(x0===x1&&y0===y1) break; const twice=2*error; if(twice>=dy){error+=dy;x0+=sx;} if(twice<=dx){error+=dx;y0+=sy;} }
@@ -38,8 +38,8 @@ for(const cell of path){const [x,y]=cell.split(",").map(Number);let mask=0;if(pa
 
 // Two crossings join opposite banks; small side spurs lead to water and woodland clearings.
 export const BRIDGES: readonly WorldProp[] = [
-  {asset:"bridge-horizontal",x:22*TILE-24,y:20*TILE-8,width:64,height:32,order:4},
-  {asset:"bridge-horizontal",x:43*TILE-24,y:23*TILE-8,width:64,height:32,order:4},
+  {asset:"bridge-horizontal",x:25*TILE-24,y:17*TILE-8,width:64,height:32,order:4},
+  {asset:"bridge-horizontal",x:42*TILE-24,y:21*TILE-8,width:64,height:32,order:4},
 ];
 
 // Rocky high ground is a set of stepped plateaus beneath individual ridge sprites.

@@ -36,7 +36,7 @@ export const WAYPOINTS: Record<RegionId, readonly { x: number; y: number }[]> = 
 
 /** Hand-authored water centerline in tile coordinates. */
 export const RIVER_TILES: readonly (readonly [number, number])[] = [
-  [1,42],[8,40],[15,39],[20,36],[22,31],[23,25],[26,21],[31,18],[37,18],[41,21],[44,24],[48,25],[53,27],[59,27],[65,30],[70,32],[78,33],
+  [1,42],[8,40],[15,39],[20,36],[22,31],[23,25],[24,22],[26,19],[28,17],[31,18],[37,18],[41,21],[44,24],[48,25],[53,27],[59,27],[65,30],[70,32],[78,33],
 ];
 
 /** Deliberate woodland silhouettes: bounds and spacing were laid out by hand. */

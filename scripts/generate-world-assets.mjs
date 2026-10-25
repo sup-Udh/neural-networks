@@ -56,8 +56,7 @@ for (let variant=0;variant<6;variant++) {
 // Four-bit N/E/S/W path masks create authored straight, corner, branch and junction tiles.
 for(let mask=0;mask<16;mask++){
   const im=image(16,16); im.r(0,0,16,16,"green"); im.r(2,2,2,1,"leaf"); im.r(12,13,2,1,"deep");
-  const q=4, x0=3,y0=3,x1=13,y1=13;
-  im.r(x0,y0,10,10,"sand");
+  im.r(3,3,10,10,"sand");
   if(mask&1) im.r(3,0,10,8,"sand"); if(mask&2) im.r(8,3,8,10,"sand");
   if(mask&4) im.r(3,8,10,8,"sand"); if(mask&8) im.r(0,3,8,10,"sand");
   im.r(6,5,2,2,"sandLight"); im.r(10,10,2,1,"sandShade"); im.r(4,11,2,1,"sandLight");
