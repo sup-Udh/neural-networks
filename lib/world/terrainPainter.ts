@@ -1,9 +1,9 @@
-import { FRAME, NORTH_RIVER, PATHS, PATH_HALF_WIDTH, POND, WEST_RIVER_BANK, WORLD_SIZE } from "./worldMap";
+import { NORTH_RIVER, PATHS, PATH_HALF_WIDTH, POND, WEST_RIVER_BANK, WORLD_SIZE } from "./worldMap";
 import type { Point } from "./worldMap";
 
 /*
  * Paints the ground layer once: grass with hand-placed tufts, the river and pond with pixel banks,
- * dirt trails with their own edge colour, and the dark frame. Everything is written pixel by pixel
+ * dirt trails with their own edge colour, and a sandy outer shoreline. Everything is written pixel by pixel
  * (no strokes, no smoothing) so the result is real pixel art at the world's native resolution.
  */
 
@@ -12,7 +12,7 @@ const COLORS = {
   water: "#4da6ff", waterLight: "#79c4ff", waterDeep: "#3a8cea", ripple: "#a6dcff", bankLine: "#26385e",
   pond: "#0b8f92", pondDeep: "#067277", pondLight: "#27b3b0", pondLine: "#123f48",
   path: "#fbc979", pathEdge: "#e2a355", pathLight: "#fddc9c", pathPebble: "#d98f4a", pathLine: "#b9743a",
-  frame: "#282832", frameLight: "#454558",
+  coastSand: "#d5b66f", coastSandLight: "#edcf88", coastEdge: "#26385e",
 };
 
 const hexToRgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
@@ -195,10 +195,17 @@ export function paintTerrain(canvas: HTMLCanvasElement | OffscreenCanvas, phase 
     }
   }
 
-  // Frame
-  for (let i = 0; i < FRAME; i++) {
-    const c = i === FRAME - 1 ? COLORS.frameLight : COLORS.frame;
-    for (let k = 0; k < size; k++) { put(k, i, c); put(k, size - 1 - i, c); put(i, k, c); put(size - 1 - i, k, c); }
+  // Turn the square artwork boundary into a narrow, irregular shore. The surrounding canvas
+  // is ocean, so the island can extend naturally to the edge of the viewport while panning.
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const distance = Math.min(x, y, size - 1 - x, size - 1 - y);
+    const edgeJitter = Math.floor(hash(x + y, x - y, 17) * 3);
+    const shore = 7 + edgeJitter;
+    if (distance > shore || wet(x, y)) continue;
+    if (distance <= 2) put(x, y, distance === 2 && hash(x, y, 18) > 0.5 ? COLORS.waterLight : COLORS.water);
+    else if (distance === 3) put(x, y, COLORS.coastEdge);
+    else if (distance <= 6) put(x, y, hash(x, y, 19) > 0.78 ? COLORS.coastSandLight : COLORS.coastSand);
+    else put(x, y, hash(x, y, 20) > 0.5 ? COLORS.grassDark : COLORS.grass);
   }
   ctx.putImageData(image, 0, 0);
 }

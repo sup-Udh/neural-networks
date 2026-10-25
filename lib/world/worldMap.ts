@@ -9,7 +9,7 @@
 
 export const WORLD_SIZE = 576;
 export const K = WORLD_SIZE / 1080;
-/** Width of the dark frame painted around the world. */
+/** Safe inset used to keep forest sprites clear of the island's pixel shoreline. */
 export const FRAME = 4;
 
 export interface Point { x: number; y: number }

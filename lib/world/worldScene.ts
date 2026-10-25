@@ -83,6 +83,7 @@ export class WorldScene {
   private last = 0;
   private lastWater = 0;
   private waterPhase = 0;
+  private oceanPattern: CanvasPattern | null = null;
   failed = 0;
   disposed = false;
 
@@ -137,6 +138,7 @@ export class WorldScene {
     this.canvas.style.width = `${cssWidth}px`;
     this.canvas.style.height = `${cssHeight}px`;
     this.applyScale();
+    this.createOceanPattern();
     this.cam = this.clamp(this.cam);
     this.dirty = true;
   }
@@ -144,6 +146,7 @@ export class WorldScene {
   setZoom(zoom: number) {
     this.zoom = Math.max(1, Math.min(4, Math.round(zoom)));
     this.applyScale();
+    this.createOceanPattern();
     this.cam = this.clamp(this.cam);
     this.camTarget = this.camTarget && this.clamp(this.camTarget);
     this.dirty = true;
@@ -155,6 +158,7 @@ export class WorldScene {
     const anchor = this.screenToWorld(clientX, clientY);
     this.zoom = Math.max(1, Math.min(4, Math.round(zoom)));
     this.applyScale();
+    this.createOceanPattern();
     this.camTarget = null;
     this.cam = this.clamp({
       x: anchor.x - (clientX - rect.left - this.cssWidth / 2) / this.pixelSize,
@@ -165,6 +169,29 @@ export class WorldScene {
 
   private applyScale() {
     this.devScale = Math.max(1, Math.round(this.zoom * this.dpr));
+  }
+
+  /** A repeating, hand-authored pixel ripple fills the screen around the explorable island. */
+  private createOceanPattern() {
+    const tile = document.createElement("canvas");
+    const unit = Math.max(1, this.devScale);
+    tile.width = 32 * unit;
+    tile.height = 32 * unit;
+    const tileCtx = tile.getContext("2d");
+    if (!tileCtx) return;
+    tileCtx.fillStyle = "#347fc3";
+    tileCtx.fillRect(0, 0, tile.width, tile.height);
+    // Small, deliberate ripple clusters, drawn on the same integer pixel grid as the world.
+    const ripples: readonly [number, number, number, string][] = [
+      [3, 5, 4, "#4e9cda"], [8, 6, 2, "#73b9e8"], [19, 3, 5, "#2d71b1"],
+      [25, 9, 3, "#4e9cda"], [12, 15, 5, "#2d71b1"], [3, 23, 3, "#73b9e8"],
+      [20, 21, 4, "#4e9cda"], [27, 28, 2, "#2d71b1"], [10, 29, 3, "#4e9cda"],
+    ];
+    for (const [x, y, width, color] of ripples) {
+      tileCtx.fillStyle = color;
+      tileCtx.fillRect(x * unit, y * unit, width * unit, unit);
+    }
+    this.oceanPattern = this.ctx.createPattern(tile, "repeat");
   }
 
   /** CSS pixels per art pixel after snapping to whole device pixels. */
@@ -382,7 +409,7 @@ export class WorldScene {
     this.lastFrame = now;
     ctx.imageSmoothingEnabled = false;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "#282832";
+    ctx.fillStyle = this.oceanPattern ?? "#347fc3";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     const s = this.devScale;
     const ox = Math.round(this.canvas.width / 2 - this.cam.x * s);
