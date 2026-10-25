@@ -54,6 +54,7 @@ export default function WorldMap() {
   const sceneRef = useRef<WorldScene | null>(null);
   const labelRefs = useRef<Partial<Record<RegionId, HTMLButtonElement | null>>>({});
   const drag = useRef<{ pointer: number; x: number; y: number; startX: number; startY: number; moved: boolean } | null>(null);
+  const wheelRemainder = useRef(0);
   const lastSaved = useRef("");
 
   const [selected, setSelected] = useState<RegionId | null>(null);
@@ -182,6 +183,35 @@ export default function WorldMap() {
       scene.dispose();
       sceneRef.current = null;
     };
+  }, [saveView]);
+
+  // Wheel/trackpad scrolling over the map zooms in place. A non-passive native listener lets us
+  // consume the gesture without causing browser page scrolling; small trackpad deltas are accumulated.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const onWheel = (event: WheelEvent) => {
+      if ((event.target as HTMLElement).closest(".destination-panel,.world-map-controls,.world-popover")) return;
+      event.preventDefault();
+      const scene = sceneRef.current;
+      if (!scene) return;
+      const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 16 : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? stage.clientHeight : 1;
+      const delta = event.deltaY * scale;
+      if (!delta) return;
+      if (wheelRemainder.current && Math.sign(wheelRemainder.current) !== Math.sign(delta)) wheelRemainder.current = 0;
+      wheelRemainder.current += delta;
+      const steps = Math.min(2, Math.floor(Math.abs(wheelRemainder.current) / 80));
+      if (!steps) return;
+      const direction = Math.sign(wheelRemainder.current);
+      wheelRemainder.current -= direction * steps * 80;
+      const targetZoom = Math.max(1, Math.min(4, scene.zoom - direction * steps));
+      if (targetZoom === scene.zoom) { wheelRemainder.current = 0; return; }
+      scene.zoomAt(targetZoom, event.clientX, event.clientY);
+      setZoom(scene.zoom);
+      saveView();
+    };
+    stage.addEventListener("wheel", onWheel, { passive: false });
+    return () => stage.removeEventListener("wheel", onWheel);
   }, [saveView]);
 
   // Keep the scene in step with React state (selection, character, motion preference, progress).
@@ -325,7 +355,7 @@ export default function WorldMap() {
         className={`world-stage ${isDragging ? "is-dragging" : ""}`}
         ref={stageRef}
         tabIndex={0}
-        aria-label="Explore the Neural Frontier. Drag to pan, arrow keys to move the view, plus and minus to zoom."
+        aria-label="Explore the Neural Frontier. Drag to pan, scroll to zoom, use arrow keys to move the view, and plus or minus to zoom."
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -353,6 +383,7 @@ export default function WorldMap() {
           <button type="button" onClick={showOverview}>World view</button>
           <button type="button" onClick={returnHome}>Starting area</button>
           <button type="button" onClick={() => changeZoom(-1)} disabled={zoom <= 1} aria-label="Zoom out">−</button>
+          <output className="world-zoom-level" aria-live="polite" aria-label={`Map zoom ${zoom} times`}>{zoom}×</output>
           <button type="button" onClick={() => changeZoom(1)} disabled={zoom >= 4} aria-label="Zoom in">+</button>
         </div>
         {active && activeStatus && (

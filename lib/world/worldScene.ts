@@ -149,6 +149,20 @@ export class WorldScene {
     this.dirty = true;
   }
 
+  /** Zoom around a screen point so the world under the pointer stays in place. */
+  zoomAt(zoom: number, clientX: number, clientY: number) {
+    const rect = this.canvas.getBoundingClientRect();
+    const anchor = this.screenToWorld(clientX, clientY);
+    this.zoom = Math.max(1, Math.min(4, Math.round(zoom)));
+    this.applyScale();
+    this.camTarget = null;
+    this.cam = this.clamp({
+      x: anchor.x - (clientX - rect.left - this.cssWidth / 2) / this.pixelSize,
+      y: anchor.y - (clientY - rect.top - this.cssHeight / 2) / this.pixelSize,
+    });
+    this.dirty = true;
+  }
+
   private applyScale() {
     this.devScale = Math.max(1, Math.round(this.zoom * this.dpr));
   }
