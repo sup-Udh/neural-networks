@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { GRID_H, GRID_W, LOOPING, getAnimations } from "./companionAnimations";
+import { portraits } from "./spriteData";
 import type { AnimationState, CompanionId } from "./companionTypes";
 
 interface PixelSpriteProps {
   character: CompanionId;
   state: AnimationState;
-  /** Rendered height in CSS px (the artwork is 24x32 units). */
+  /** Rendered height in CSS px. The artwork is 24 x 36 units, so multiples of 36 stay perfectly crisp. */
   size: number;
   /** Show only the first frame and never schedule timers. */
   still?: boolean;
@@ -50,9 +51,30 @@ export default function PixelSprite({ character, state, size, still = false, fra
       width={Math.round((size * GRID_W) / GRID_H)}
       height={size}
       shapeRendering="crispEdges"
+      style={{ imageRendering: "pixelated" }}
       aria-hidden="true"
     >
       {shown?.pixels.map(([x, y, w, h, color], i) => (
+        <rect key={i} x={x} y={y} width={w} height={h} fill={color} />
+      ))}
+    </svg>
+  );
+}
+
+/** The head of the canonical design at an integer scale, for badges and the dock button. */
+export function PixelPortrait({ character, scale }: { character: CompanionId; scale: number }) {
+  const { pixels, width, height } = portraits[character];
+  return (
+    <svg
+      className="pixel-sprite"
+      viewBox={`0 0 ${width} ${height}`}
+      width={width * scale}
+      height={height * scale}
+      shapeRendering="crispEdges"
+      style={{ imageRendering: "pixelated" }}
+      aria-hidden="true"
+    >
+      {pixels.map(([x, y, w, h, color], i) => (
         <rect key={i} x={x} y={y} width={w} height={h} fill={color} />
       ))}
     </svg>

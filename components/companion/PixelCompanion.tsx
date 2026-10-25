@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { CSSProperties, Ref, RefObject } from "react";
 import CompanionSpeechBubble from "./CompanionSpeechBubble";
-import PixelSprite from "./PixelSprite";
-import { ANCHOR_ROW, BODY_CENTER_X, GRID_H, GRID_W, JUMP_FRAME } from "./companionAnimations";
+import PixelSprite, { PixelPortrait } from "./PixelSprite";
+import { BODY_CENTER_X, GRID_H, GRID_W, JUMP_FRAME, anchorRow } from "./companionAnimations";
 import { lineNear, perchLedge } from "./companionGeometry";
 import type { AnimationState, CompanionId, CompanionSize, PerchMode, PixelCompanionHandle } from "./companionTypes";
 import { useMediaQuery } from "./useMediaQuery";
@@ -48,12 +48,12 @@ const MODE_STATE: Record<PerchMode, AnimationState> = { stand: "idle", hang: "ha
 const NO_TRAVEL = { ms: 0, arc: 0, ease: "linear", key: 0 };
 
 export default function PixelCompanion({
-  character, size = 24, stageRef, sectionIds, activeId, contentSelector, reducedMotion, paused, replayKey, selectionPrompt = true, selectionExclude, suspended = false, ref,
+  character, size = 36, stageRef, sectionIds, activeId, contentSelector, reducedMotion, paused, replayKey, selectionPrompt = true, selectionExclude, suspended = false, ref,
 }: PixelCompanionProps) {
   const systemReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const reduced = reducedMotion ?? systemReduced;
   const docked = useMediaQuery("(max-width: 760px)");
-  const effSize = docked ? Math.min(size, 24) : size;
+  const effSize = docked ? Math.min(size, 36) : size;
   const scale = effSize / GRID_H;
 
   const [minimized, setMinimized] = useState(false);
@@ -533,12 +533,12 @@ export default function PixelCompanion({
     setMinimized(!minimized);
   };
 
-  const shown: AnimationState = effSize <= 16 ? "idle" : state;
-  const still = reduced || effSize <= 16;
+  const shown: AnimationState = effSize <= 18 ? "idle" : state;
+  const still = reduced || effSize <= 18;
   const hopping = state === "celebrate" && !reduced;
   const visible = !minimized && (docked || pos);
   const x = pos ? Math.round(pos.x - BODY_CENTER_X * scale) : 0;
-  const y = pos ? Math.round(pos.ledge - ANCHOR_ROW[shown] * scale) : 0;
+  const y = pos ? Math.round(pos.ledge - anchorRow(character, shown) * scale) : 0;
   const style: CSSProperties | undefined = docked
     ? undefined
     : {
@@ -572,7 +572,7 @@ export default function PixelCompanion({
           {shown !== "walk" && shown !== "jump" && (
             <span
               className="companion-plank"
-              style={{ left: BODY_CENTER_X * scale, top: ANCHOR_ROW[shown] * scale - (shown === "hang" ? 2 : 0), width: Math.round(18 * scale) }}
+              style={{ left: BODY_CENTER_X * scale, top: anchorRow(character, shown) * scale - (shown === "hang" ? 2 : 0), width: Math.round(18 * scale) }}
             />
           )}
         </div>
@@ -588,7 +588,7 @@ export default function PixelCompanion({
       )}
       <div className="companion-dock">
         <button type="button" className="companion-dock-button" aria-pressed={!minimized} onClick={toggleMinimized}>
-          <PixelSprite character={character} state="idle" size={24} still />
+          <PixelPortrait character={character} scale={2} />
           {minimized ? "Show companion" : "Hide companion"}
         </button>
       </div>

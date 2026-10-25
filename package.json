@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "assets:world": "node scripts/generate-world-assets.mjs",
+    "assets:characters": "node scripts/generate-character-assets.mjs"
   },
   "dependencies": {
     "next": "16.4.2",

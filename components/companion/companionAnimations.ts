@@ -1,191 +1,264 @@
+import { ART, GRID_H, GRID_W } from "./characterArt";
+import type { CharacterArt, Rows } from "./characterArt";
 import type { AnimationState, CompanionId, Frame, Pixel } from "./companionTypes";
 
 /*
- * Side-view rig for Rune and Sol, drawn on a 20 x 24 pixel grid and facing right.
- * Colours come from the existing front-facing artwork so the characters stay recognisable.
- * Every frame is assembled from rig parts (head, torso, two arms, two legs), so walking,
- * sitting and hanging are real poses, not a bobbing front sprite.
+ * Frame builder. Poses are assembled from the hand-drawn parts in characterArt.ts
+ * (head, torso, two arms, legs, held items), so every state is a different drawing,
+ * not a transformed standing sprite.
  */
 
-export const GRID_W = 20;
-export const GRID_H = 24;
+export { GRID_H, GRID_W };
 /** Horizontal centre of the body in grid units; positions refer to this point. */
-export const BODY_CENTER_X = 8.5;
+export const BODY_CENTER_X = GRID_W / 2;
 
-interface Palette {
-  hair: string; hairDark: string; skin: string; skinShade: string; eye: string; mouth: string;
-  coat: string; coatDark: string; belt: string; pants: string; pantsDark: string; boot: string; bag: string;
-  trim: Pixel[]; glint?: string;
-}
-
-const PALETTES: Record<CompanionId, Palette> = {
-  rune: {
-    hair: "#a0522d", hairDark: "#8c3e1e", skin: "#f8d5b8", skinShade: "#d9a98a", eye: "#241b17", mouth: "#d8846c",
-    coat: "#f3ece3", coatDark: "#c9bfb3", belt: "#354a68", pants: "#3d5578", pantsDark: "#2d3f5a", boot: "#6b4630", bag: "#6d4c3d",
-    trim: [[8, 8, 3, 2, "#f3701e"], [9, 12, 1, 3, "#7fa5d8"]],
-  },
-  sol: {
-    hair: "#2d6e85", hairDark: "#1b4958", skin: "#efd1ba", skinShade: "#cfa88f", eye: "#182c35", mouth: "#c47864",
-    coat: "#3b4b5e", coatDark: "#2b3747", belt: "#1a202c", pants: "#374151", pantsDark: "#2a3340", boot: "#4a5568", bag: "#55606d",
-    trim: [[9, 10, 1, 4, "#f3ece3"], [8, 9, 3, 1, "#f3ece3"]], glint: "#7fa5d8",
-  },
-};
-
-type LegPose = { kx: number; fx: number; lift: number } | { sit: true; sw: number };
-type ArmPose =
-  | { kind: "swing"; s: number }
-  | { kind: "forward" }
-  | { kind: "up" }
-  | { kind: "hang" }
-  | { kind: "lap" }
-  | { kind: "type"; t: number };
+type ArmPose = "down" | "up" | "forward" | "reach";
+type LegPose = "stand" | "dangle" | "tuck" | "stepL" | "stepR";
+type Prop = "magnifier" | "laptop" | "sparksA" | "sparksB";
 
 interface Pose {
-  by?: number; // body (head + torso + arms) vertical offset
-  hdy?: number; // extra head offset
-  legsDy?: number;
+  /** Vertical offset of head, torso and arms (idle breathing, crouch). */
+  by?: number;
+  legs?: LegPose;
+  armL?: ArmPose;
+  armR?: ArmPose;
+  /** Vertical nudge of each arm, used for the walk swing. */
+  swingL?: number;
+  swingR?: number;
+  /** Eyes closed (the adventurer only). */
   blink?: boolean;
-  near: LegPose;
-  far: LegPose;
-  armNear: ArmPose;
-  armFar: ArmPose;
-  props?: Pixel[];
+  flame?: number;
+  /** Held items are drawn over the arms unless hidden. */
+  sword?: boolean;
+  shield?: boolean;
+  torch?: boolean;
+  /** Raised arms carry the held item with them. */
+  liftL?: boolean;
+  liftR?: boolean;
+  /** Extra rows of reach for the hang pose. */
+  reach?: number;
+  /** Move the whole rig down (sitting body drop, hang). */
+  dropY?: number;
+  props?: Prop[];
 }
 
-function leg(P: Palette, pose: LegPose, near: boolean, dy: number): Pixel[] {
-  const pants = near ? P.pants : P.pantsDark;
-  const boot = near ? P.boot : P.pantsDark;
-  if ("sit" in pose) {
-    const x = near ? 7 : 6;
-    const drop = near ? 11 : 9;
-    return [
-      [x, 16 + dy, near ? 6 : 5, 3, pants],
-      [drop + pose.sw, 19 + dy, 3, 4, pants],
-      [drop + pose.sw, 23 + dy, 4, 1, boot],
-    ];
-  }
-  const hip = near ? 7 : 5;
-  return [
-    [hip + pose.kx, 16 + dy, 3, 4, pants],
-    [hip + pose.fx, 20 + dy, 3, Math.max(0, 3 - pose.lift), pants],
-    [hip + pose.fx, 23 + dy - pose.lift, 4, 1, boot],
-  ];
-}
+type Grid = (string | null)[][];
 
-function arm(P: Palette, pose: ArmPose, by: number, near: boolean): Pixel[] {
-  const sleeve = near ? P.coat : P.coatDark;
-  const hand = near ? P.skin : P.skinShade;
-  switch (pose.kind) {
-    case "swing":
-      return [[7 + Math.trunc(pose.s / 2), 10 + by, 2, 3, sleeve], [7 + pose.s, 13 + by, 2, 3, sleeve], [7 + pose.s, 16 + by, 2, 1, hand]];
-    case "forward":
-      return [[8, 10 + by, 2, 2, sleeve], [9, 11 + by, 4, 2, sleeve], [13, 11 + by, 1, 2, hand]];
-    case "lap":
-      return [[7, 10 + by, 2, 3, sleeve], [8, 13 + by, 4, 2, sleeve], [12, 13 + by, 1, 2, hand]];
-    case "type":
-      return [[7, 10 + by, 2, 3, sleeve], [8, 12 + by + pose.t, 5, 2, sleeve], [13, 12 + by + pose.t, 1, 2, hand]];
-    case "up": {
-      // Raised in front of the face so the arms stay visible against the head.
-      const x = near ? 12 : 14;
-      return [[10, 9 + by, near ? 3 : 5, 2, sleeve], [x, 4 + by, 2, 6, sleeve], [x, 2 + by, 2, 2, hand]];
+const stamp = (grid: Grid, rows: Rows | undefined, x: number, y: number) => {
+  if (!rows) return;
+  rows.forEach((row, dy) => {
+    for (let dx = 0; dx < row.length; dx++) {
+      const ch = row[dx];
+      const gx = x + dx;
+      const gy = y + dy;
+      if (ch !== "." && gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H) grid[gy][gx] = ch;
     }
-    default: // hang: grips the ledge above the head, arm passes behind the face
-      return [[9, 15 + by, 3, 2, sleeve], [near ? 11 : 10, 2, 2, 13 + by - 6, sleeve], [near ? 11 : 10, 0, 2, 2, hand]];
-  }
-}
-
-const behindHead = (pose: ArmPose) => pose.kind === "hang";
-
-function render(character: CompanionId, pose: Pose): Pixel[] {
-  const P = PALETTES[character];
-  const by = pose.by ?? 0;
-  const hd = by + (pose.hdy ?? 0);
-  const ld = pose.legsDy ?? 0;
-  const out: Pixel[] = [];
-  out.push(...leg(P, pose.far, false, ld), ...leg(P, pose.near, true, ld));
-  // bag, torso and trim
-  out.push([2, 10 + by, 3, 6, P.bag]);
-  out.push([5, 9 + by, 6, 7, P.coat], [5, 9 + by, 1, 7, P.coatDark], [5, 15 + by, 6, 1, P.belt]);
-  for (const [x, y, w, h, c] of P.trim) out.push([x, y + by, w, h, c]);
-  if (behindHead(pose.armFar)) out.push(...arm(P, pose.armFar, by, false));
-  if (behindHead(pose.armNear)) out.push(...arm(P, pose.armNear, by, true));
-  // head
-  out.push(
-    [3, 1 + hd, 4, 7, P.hairDark], [4, 0 + hd, 8, 3, P.hair], [6, 3 + hd, 6, 5, P.skin], [12, 5 + hd, 1, 1, P.skin],
-    [5, 4 + hd, 1, 2, P.skinShade], [7, 8 + hd, 3, 1, P.skinShade], [10, 7 + hd, 2, 1, P.mouth],
-  );
-  if (pose.blink) out.push([9, 5 + hd, 3, 1, P.eye]);
-  else {
-    out.push([10, 4 + hd, 1, 2, P.eye]);
-    if (P.glint) out.push([11, 4 + hd, 1, 1, P.glint]);
-  }
-  if (!behindHead(pose.armFar)) out.push(...arm(P, pose.armFar, by, false));
-  if (!behindHead(pose.armNear)) out.push(...arm(P, pose.armNear, by, true));
-  const all = pose.props ? [...out, ...pose.props] : out;
-  return all.filter(([, , w, h]) => w > 0 && h > 0);
-}
-
-const LIME = "#c6f04a";
-const magnifier = (dy: number): Pixel[] => [
-  [15, 8 + dy, 2, 1, "#eef0f2"], [15, 13 + dy, 2, 1, "#eef0f2"], [14, 9 + dy, 1, 4, "#eef0f2"], [17, 9 + dy, 1, 4, "#eef0f2"],
-  [15, 9 + dy, 2, 4, "#7d93f5"],
-];
-const LAPTOP: Pixel[] = [[10, 15, 6, 1, "#55606d"], [15, 10, 1, 5, "#191a1e"], [15, 11, 1, 2, "#2547e8"]];
-const SPARKS_A: Pixel[] = [[1, 4, 1, 1, LIME], [17, 2, 1, 1, LIME], [18, 8, 1, 1, LIME]];
-const SPARKS_B: Pixel[] = [[2, 2, 1, 1, LIME], [16, 4, 1, 1, LIME], [0, 8, 1, 1, LIME]];
-
-/** Grid row of the sprite that rests on the target line. */
-export const ANCHOR_ROW: Record<AnimationState, number> = {
-  idle: 24, walk: 24, jump: 24, inspect: 24, celebrate: 24, hang: 0, sit: 19, work: 19,
+  });
 };
+
+/** Centre a part on the grid. All parts that are centred use an even width. */
+const centreX = (rows: Rows) => Math.floor((GRID_W - rows[0].length) / 2);
+
+/** Raise one half of a legs part by `lift` rows, for a stepping leg. */
+function liftLeg(rows: Rows, side: "L" | "R", lift: number): Rows {
+  const half = rows[0].length / 2;
+  const cut = (row: string) => (side === "L" ? [row.slice(0, half), row.slice(half)] : [row.slice(half), row.slice(0, half)]);
+  const moving: string[] = [];
+  const staying: string[] = [];
+  for (const row of rows) {
+    const [m, s] = cut(row);
+    moving.push(m);
+    staying.push(s);
+  }
+  // Drop the stepping half's top rows so its boot rises, then pad the bottom with air.
+  const raised = [...moving.slice(lift), ...Array(lift).fill(".".repeat(half))];
+  return rows.map((_, i) => (side === "L" ? raised[i] + staying[i] : staying[i] + raised[i]));
+}
+
+/** Insert extra forearm rows so a raised arm reaches a ledge above the head. */
+function reachArm(rows: Rows, extra: number): Rows {
+  const forearm = rows[Math.max(0, rows.length - 4)];
+  return [...rows.slice(0, 2), ...Array(extra).fill(forearm), ...rows.slice(2)];
+}
+
+const MAGNIFIER: readonly Pixel[] = [
+  [1, 9, 6, 1, "#eef0f2"], [1, 15, 6, 1, "#eef0f2"], [0, 10, 1, 5, "#eef0f2"], [7, 10, 1, 5, "#eef0f2"],
+  [1, 10, 6, 5, "#7d93f5"], [2, 11, 2, 1, "#c7d2ff"], [3, 16, 2, 2, "#8b5a2b"], [3, 18, 2, 5, "#8b5a2b"],
+];
+const LAPTOP: readonly Pixel[] = [
+  [6, 20, 12, 7, "#2a2d34"], [7, 21, 10, 5, "#55606d"], [10, 22, 4, 2, "#2547e8"], [4, 27, 16, 1, "#1b1d22"], [5, 28, 14, 1, "#55606d"],
+];
+const LIME = "#c6f04a";
+const SPARKS_A: readonly Pixel[] = [[1, 4, 1, 1, LIME], [21, 2, 1, 1, LIME], [22, 9, 1, 1, LIME], [3, 10, 1, 1, LIME]];
+const SPARKS_B: readonly Pixel[] = [[2, 2, 1, 1, LIME], [20, 5, 1, 1, LIME], [0, 8, 1, 1, LIME], [23, 13, 1, 1, LIME]];
+const PROPS: Record<Prop, readonly Pixel[]> = { magnifier: MAGNIFIER, laptop: LAPTOP, sparksA: SPARKS_A, sparksB: SPARKS_B };
+
+/** Rows from the top of a raised arm to its shoulder. */
+const UP_SHOULDER = 3;
+
+/** Compose one pose into pixel rectangles. Also used by the world renderer through `getAnimations`. */
+export function composePose(art: CharacterArt, pose: Pose): Pixel[] {
+  const grid: Grid = Array.from({ length: GRID_H }, () => Array<string | null>(GRID_W).fill(null));
+  const by = (pose.by ?? 0) + (pose.dropY ?? 0);
+  const legsDy = pose.dropY ?? 0;
+  const legMode = pose.legs ?? "stand";
+
+  // Legs
+  if (legMode === "stand") stamp(grid, art.legs.stand, centreX(art.legs.stand), art.legsY + legsDy);
+  else if (legMode === "stepL") stamp(grid, liftLeg(art.legs.stand, "L", 3), centreX(art.legs.stand), art.legsY + legsDy);
+  else if (legMode === "stepR") stamp(grid, liftLeg(art.legs.stand, "R", 3), centreX(art.legs.stand), art.legsY + legsDy);
+  else if (legMode === "tuck") stamp(grid, art.legs.tuck, centreX(art.legs.tuck), art.legsY + legsDy - 2);
+  else stamp(grid, art.legs.dangle, centreX(art.legs.dangle), art.legsY + legsDy);
+
+  // Torso, then arms, then head (the head overlaps raised arms)
+  stamp(grid, art.torso, centreX(art.torso), art.torsoY + by);
+  const armOf = (set: CharacterArt["armL"], mode: ArmPose): Rows => (mode === "reach" ? reachArm(set.up, pose.reach ?? 10) : set[mode]);
+  const armY = (mode: ArmPose, swing: number) => {
+    if (mode === "reach") return art.torsoY + by - UP_SHOULDER - (pose.reach ?? 10) + swing;
+    if (mode === "up") return art.torsoY + by - UP_SHOULDER + swing;
+    return art.torsoY + by + swing;
+  };
+  const modeL = pose.armL ?? "down";
+  const modeR = pose.armR ?? "down";
+  stamp(grid, armOf(art.armL, modeL), art.armLX, armY(modeL, pose.swingL ?? 0));
+  stamp(grid, armOf(art.armR, modeR), art.armRX, armY(modeR, pose.swingR ?? 0));
+  stamp(grid, art.head, centreX(art.head), art.headY + by);
+
+  // Blink: close the adventurer's eyes. The knight's visor has no eyes, so it only gets the pause between breaths.
+  if (pose.blink && art.id === "sol") {
+    const hy = art.headY + by;
+    const hx = centreX(art.head);
+    for (const ex of [3, 8]) {
+      grid[hy + 6][hx + ex] = "F";
+      grid[hy + 7][hx + ex] = "f";
+    }
+  }
+
+  // Held items
+  const liftDy = -10;
+  if (art.heldL && pose.sword !== false) {
+    stamp(grid, art.heldL, art.heldLX ?? 0, (art.heldLY ?? 12) + by + (pose.liftL ? liftDy : 0));
+  }
+  if (art.heldR) {
+    const isTorch = art.id === "sol";
+    const show = isTorch ? pose.torch !== false : pose.shield !== false;
+    if (show) {
+      const dy = (art.heldRY ?? 18) + by + (pose.liftR ? (isTorch ? -7 : liftDy) : 0);
+      stamp(grid, art.heldR, art.heldRX ?? 18, dy);
+      if (isTorch && art.flame) {
+        const flame = art.flame[(pose.flame ?? 0) % art.flame.length];
+        stamp(grid, flame, (art.heldRX ?? 18), dy - flame.length);
+      }
+    }
+  }
+
+  // Convert to rectangles: merge runs along rows, then merge identical runs on consecutive rows.
+  const rects: Pixel[] = [];
+  const open = new Map<string, number>();
+  for (let y = 0; y <= GRID_H; y++) {
+    const runs = new Map<string, [number, number, string]>();
+    if (y < GRID_H) {
+      let x = 0;
+      while (x < GRID_W) {
+        const ch = grid[y][x];
+        if (!ch) { x++; continue; }
+        let end = x;
+        while (end + 1 < GRID_W && grid[y][end + 1] === ch) end++;
+        runs.set(`${x}:${end - x + 1}:${ch}`, [x, end - x + 1, ch]);
+        x = end + 1;
+      }
+    }
+    for (const [key, startY] of [...open]) {
+      if (!runs.has(key)) {
+        const [x, w, ch] = [Number(key.split(":")[0]), Number(key.split(":")[1]), key.split(":")[2]];
+        rects.push([x, startY, w, y - startY, art.palette[ch]]);
+        open.delete(key);
+      }
+    }
+    for (const key of runs.keys()) if (!open.has(key)) open.set(key, y);
+  }
+
+  for (const name of pose.props ?? []) {
+    for (const [x, y, w, h, c] of PROPS[name]) rects.push([x, y + (name === "magnifier" || name === "laptop" ? by : 0), w, h, c]);
+  }
+  return rects;
+}
+
+/** Grid row of the sprite that rests on the target line. Sitting rests on the seat, hanging on the ledge. */
+export function anchorRow(character: CompanionId, state: AnimationState): number {
+  const art = ART[character];
+  switch (state) {
+    case "hang": return 3;
+    case "sit":
+    case "work": return art.legsY;
+    default: return GRID_H;
+  }
+}
 export const JUMP_FRAME = { crouch: 0, up: 1, apex: 2, down: 3, land: 4 } as const;
 
-const STAND_NEAR: LegPose = { kx: 1, fx: 1, lift: 0 };
-const STAND_FAR: LegPose = { kx: -1, fx: -1, lift: 0 };
-const STAND = { near: STAND_NEAR, far: STAND_FAR, armNear: { kind: "swing", s: 0 } as ArmPose, armFar: { kind: "swing", s: -1 } as ArmPose };
-const CROUCH: Pose = { by: 2, near: { kx: 2, fx: -1, lift: 0 }, far: { kx: 0, fx: -3, lift: 0 }, armNear: { kind: "swing", s: -2 }, armFar: { kind: "swing", s: -2 } };
+const CROUCH: Pose = { by: 2, legs: "tuck" };
 
 function build(character: CompanionId): Record<AnimationState, Frame[]> {
-  const f = (pose: Pose, ms: number): Frame => ({ pixels: render(character, pose), ms });
-  const sit = (nearSw: number, farSw: number, extra: Partial<Pose> = {}): Pose => ({
-    near: { sit: true, sw: nearSw }, far: { sit: true, sw: farSw }, armNear: { kind: "lap" }, armFar: { kind: "lap" }, ...extra,
+  const art = ART[character];
+  const flames = art.flame?.length ?? 1;
+  const f = (pose: Pose, ms: number): Frame => ({ pixels: composePose(art, pose), ms });
+  const isSol = character === "sol";
+
+  // Idle: a slow breath. The adventurer's torch flickers on every beat.
+  const idle: Frame[] = isSol
+    ? [
+        f({ flame: 0 }, 260), f({ flame: 1 }, 260), f({ flame: 2 }, 260), f({ flame: 1 }, 260),
+        f({ flame: 0, by: 1 }, 260), f({ flame: 2, by: 1 }, 260), f({ flame: 1, by: 1 }, 260), f({ flame: 0 }, 260),
+        f({ flame: 1 }, 260), f({ flame: 2 }, 260), f({ flame: 0, blink: true }, 140), f({ flame: 1 }, 260),
+      ]
+    : [f({}, 1400), f({ by: 1 }, 760), f({}, 1300), f({ by: 1 }, 760)];
+
+  const fl = (n: number) => n % flames;
+  const walkFrame = (legs: LegPose, by: number, swingL: number, swingR: number, n: number, ms = 120): Frame =>
+    f({ legs, by, swingL, swingR, flame: fl(n) }, ms);
+
+  const sit = (extra: Partial<Pose>): Pose => ({ legs: "dangle", armL: "down", armR: "down", ...extra });
+  const hang = (legs: LegPose, extra: Partial<Pose> = {}): Pose => ({
+    legs, armL: "reach", armR: "reach", reach: 10, sword: false, shield: false, torch: false, ...extra,
   });
-  const hang = (n: number, fa: number): Pose => ({
-    by: 7, legsDy: 7, near: { kx: n, fx: n, lift: 0 }, far: { kx: fa - 1, fx: fa - 1, lift: 0 }, armNear: { kind: "hang" }, armFar: { kind: "hang" },
-  });
+  const cheer = (extra: Partial<Pose>): Pose => ({ armL: "up", armR: "up", liftL: true, liftR: true, ...extra });
+
   return {
-    idle: [
-      f({ ...STAND }, 1500), f({ ...STAND, by: 1 }, 800), f({ ...STAND }, 1300), f({ ...STAND, blink: true }, 130),
-      f({ ...STAND }, 1700), f({ ...STAND, by: 1 }, 800), f({ ...STAND, blink: true }, 130),
-    ],
+    idle,
     walk: [
-      f({ by: 1, near: { kx: 3, fx: 4, lift: 0 }, far: { kx: -3, fx: -4, lift: 0 }, armNear: { kind: "swing", s: -2 }, armFar: { kind: "swing", s: 2 } }, 120),
-      f({ by: 0, near: { kx: 1, fx: 1, lift: 0 }, far: { kx: 0, fx: -1, lift: 3 }, armNear: { kind: "swing", s: -1 }, armFar: { kind: "swing", s: 1 } }, 120),
-      f({ by: 1, near: { kx: -3, fx: -4, lift: 0 }, far: { kx: 3, fx: 4, lift: 0 }, armNear: { kind: "swing", s: 2 }, armFar: { kind: "swing", s: -2 } }, 120),
-      f({ by: 0, near: { kx: 0, fx: -1, lift: 3 }, far: { kx: 1, fx: 1, lift: 0 }, armNear: { kind: "swing", s: 1 }, armFar: { kind: "swing", s: -1 } }, 120),
+      walkFrame("stand", 1, -1, 1, 0),
+      walkFrame("stepR", 0, 1, -1, 1),
+      walkFrame("stand", 1, 1, -1, 2),
+      walkFrame("stepL", 0, -1, 1, 0),
     ],
     jump: [
       f(CROUCH, 130),
-      f({ by: -1, near: { kx: 2, fx: 1, lift: 3 }, far: { kx: 0, fx: -2, lift: 3 }, armNear: { kind: "swing", s: 2 }, armFar: { kind: "swing", s: 2 } }, 140),
-      f({ by: -2, near: { kx: 3, fx: 3, lift: 3 }, far: { kx: -1, fx: -3, lift: 4 }, armNear: { kind: "up" }, armFar: { kind: "up" } }, 140),
-      f({ by: 0, near: { kx: 2, fx: 3, lift: 1 }, far: { kx: 0, fx: -1, lift: 1 }, armNear: { kind: "swing", s: -2 }, armFar: { kind: "swing", s: -1 } }, 140),
+      f({ by: -1, legs: "tuck", armL: "down", armR: "down", swingL: -1, swingR: -1 }, 140),
+      f({ by: -2, legs: "tuck", ...cheer({}) }, 140),
+      f({ by: 0, legs: "stand", swingL: -1, swingR: -1 }, 140),
       f({ ...CROUCH, by: 2 }, 150),
     ],
     inspect: [
-      f({ ...STAND, armNear: { kind: "forward" }, props: magnifier(0) }, 450),
-      f({ ...STAND, by: 1, armNear: { kind: "forward" }, props: magnifier(1) }, 450),
+      f({ armL: "forward", sword: false, torch: true, props: ["magnifier"], flame: 0 }, 420),
+      f({ armL: "forward", sword: false, torch: true, props: ["magnifier"], by: 1, flame: 1 }, 420),
+      f({ armL: "forward", sword: false, torch: true, props: ["magnifier"], flame: 2 }, 420),
+      f({ armL: "forward", sword: false, torch: true, props: ["magnifier"], by: 1, flame: 1 }, 420),
     ],
-    hang: [f(hang(0, 0), 600), f(hang(1, -1), 600), f(hang(0, 0), 600), f(hang(-1, 1), 600)],
-    sit: [f(sit(0, 1), 420), f(sit(1, 0), 420), f(sit(0, 1), 420), f(sit(1, 0), 420), f(sit(0, 1, { blink: true }), 130), f(sit(1, 0), 420)],
+    hang: [f(hang("dangle"), 600), f(hang("dangle", { by: 1 }), 600), f(hang("tuck", { by: 1 }), 600), f(hang("dangle"), 600)],
+    sit: [
+      f(sit({ flame: 0 }), 420), f(sit({ flame: 1, by: 1 }), 420), f(sit({ flame: 2 }), 420), f(sit({ flame: 1, by: 1 }), 420),
+      f(sit({ flame: 0, blink: true }), 140), f(sit({ flame: 2 }), 420),
+    ],
     work: [
-      f(sit(0, 1, { hdy: 1, armNear: { kind: "type", t: 0 }, armFar: { kind: "type", t: 1 }, props: LAPTOP }), 240),
-      f(sit(1, 0, { hdy: 1, armNear: { kind: "type", t: 1 }, armFar: { kind: "type", t: 0 }, props: LAPTOP }), 240),
+      f(sit({ armL: "forward", armR: "forward", swingL: 0, swingR: 1, sword: false, torch: false, by: 1, props: ["laptop"] }), 240),
+      f(sit({ armL: "forward", armR: "forward", swingL: 1, swingR: 0, sword: false, torch: false, by: 1, props: ["laptop"] }), 240),
     ],
     celebrate: [
       f(CROUCH, 130),
-      f({ by: -1, near: { kx: 2, fx: 1, lift: 3 }, far: { kx: 0, fx: -2, lift: 3 }, armNear: { kind: "up" }, armFar: { kind: "up" }, props: SPARKS_A }, 200),
-      f({ by: -2, near: { kx: 3, fx: 3, lift: 3 }, far: { kx: -1, fx: -3, lift: 4 }, armNear: { kind: "up" }, armFar: { kind: "up" }, props: SPARKS_B }, 200),
-      f({ by: 0, near: { kx: 2, fx: 3, lift: 1 }, far: { kx: 0, fx: -1, lift: 1 }, armNear: { kind: "up" }, armFar: { kind: "up" }, props: SPARKS_A }, 160),
+      f({ by: -1, legs: "tuck", ...cheer({ flame: 0 }), props: ["sparksA"] }, 200),
+      f({ by: -2, legs: "tuck", ...cheer({ flame: 1 }), props: ["sparksB"] }, 200),
+      f({ by: 0, legs: "stand", ...cheer({ flame: 2 }), props: ["sparksA"] }, 160),
+      f({ by: 0, legs: "stand", ...cheer({ flame: 1 }), props: ["sparksB"] }, 160),
     ],
   };
 }

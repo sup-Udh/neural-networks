@@ -2,21 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import PixelSprite, { PixelPortrait } from "@/components/companion/PixelSprite";
 import type { CompanionId } from "@/components/companion/companionTypes";
-import { portraits, sprites } from "@/components/companion/spriteData";
-import { saveCompanion } from "@/components/companion/companionStore";
+import { saveCompanion, useSavedCompanion } from "@/components/companion/companionStore";
 
-function PixelArt({ companion, portrait = false }: { companion: CompanionId; portrait?: boolean }) {
-  const source = portrait ? portraits[companion] : sprites[companion];
-  const size = portrait ? "0 0 16 16" : "0 0 24 32";
-  return (
-    <svg className={portrait ? "companion-portrait" : "companion-sprite"} viewBox={size} aria-hidden="true" shapeRendering="crispEdges">
-      {source.map(([x, y, width, height, color], index) => (
-        <rect key={`${companion}-${index}`} x={x} y={y} width={width} height={height} fill={color} />
-      ))}
-    </svg>
-  );
-}
+/*
+ * Design mapping used everywhere in the app (see components/companion/characterArt.ts):
+ *   Rune -> the dark knight with the red plume, gold visor, shield and sword
+ *   Sol  -> the blond adventurer in a green tunic carrying a torch
+ */
+const PICKER_SPRITE_HEIGHT = 36 * 5;
 
 const companions = {
   rune: {
@@ -46,7 +41,13 @@ function SelectionMark({ selected }: { selected: boolean }) {
 }
 
 export default function CompanionPicker() {
-  const [selected, setSelected] = useState<CompanionId | null>(null);
+  const saved = useSavedCompanion();
+  const [chosen, setChosen] = useState<CompanionId | null>(null);
+  const selected = chosen ?? saved ?? null;
+  const choose = (id: CompanionId) => {
+    setChosen(id);
+    saveCompanion(id);
+  };
 
   return (
     <>
@@ -60,18 +61,18 @@ export default function CompanionPicker() {
               type="button"
               key={id}
               aria-pressed={isSelected}
-              onClick={() => setSelected(id)}
+              onClick={() => choose(id)}
             >
               <SelectionMark selected={isSelected} />
               <span className="companion-halo" aria-hidden="true" />
               <span className="companion-card-inner">
                 <span className="companion-stage">
                   <span className="portrait-tag">
-                    <PixelArt companion={id} portrait />
+                    <span className="companion-portrait"><PixelPortrait character={id} scale={2} /></span>
                     <span><small>Portrait</small><strong>{id}</strong></span>
                   </span>
-                  <span className={`sprite-wrapper ${isSelected ? "sprite-idle" : ""}`}>
-                    <PixelArt companion={id} />
+                  <span className="sprite-wrapper">
+                    <PixelSprite character={id} state={isSelected ? "celebrate" : "idle"} size={PICKER_SPRITE_HEIGHT} />
                   </span>
                   <span className="sprite-shadow" />
                 </span>

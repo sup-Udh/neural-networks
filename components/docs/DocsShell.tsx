@@ -49,7 +49,7 @@ function DocsView() {
   const companionRef = useRef<PixelCompanionHandle>(null);
   const activeId = useActiveSection(SECTION_IDS);
   const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const [dev, setDev] = useState<DevSettings>({ character: null, size: 24, reduced: null, paused: false });
+  const [dev, setDev] = useState<DevSettings>({ character: null, size: 36, reduced: null, paused: false });
   const [replayKey, setReplayKey] = useState(0);
   const [panel, setPanel] = useState<{ mode: "explain" | "unpack"; passage: Passage } | null>(null);
   const [toast, setToast] = useState("");

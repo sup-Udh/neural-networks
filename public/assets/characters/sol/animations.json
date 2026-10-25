@@ -1,0 +1,139 @@
+{
+ "character": "sol",
+ "design": "blond adventurer: green tunic, brown belt and boots, torch",
+ "frame": {
+  "width": 24,
+  "height": 36,
+  "anchor": "bottom centre (feet) unless an animation says otherwise",
+  "transparentPadding": true
+ },
+ "facing": "front-facing; mirrored horizontally for left/right travel",
+ "sheet": {
+  "file": "sheet.png",
+  "columns": 12,
+  "rows": 8,
+  "rowOrder": [
+   "idle",
+   "walk",
+   "jump",
+   "inspect",
+   "hang",
+   "sit",
+   "work",
+   "celebrate"
+  ]
+ },
+ "animations": {
+  "idle": {
+   "row": 0,
+   "frames": 12,
+   "frameDurationsMs": [
+    260,
+    260,
+    260,
+    260,
+    260,
+    260,
+    260,
+    260,
+    260,
+    260,
+    140,
+    260
+   ],
+   "loop": true,
+   "anchorRow": 36
+  },
+  "walk": {
+   "row": 1,
+   "frames": 4,
+   "frameDurationsMs": [
+    120,
+    120,
+    120,
+    120
+   ],
+   "loop": true,
+   "anchorRow": 36
+  },
+  "jump": {
+   "row": 2,
+   "frames": 5,
+   "frameDurationsMs": [
+    130,
+    140,
+    140,
+    140,
+    150
+   ],
+   "loop": false,
+   "anchorRow": 36
+  },
+  "inspect": {
+   "row": 3,
+   "frames": 4,
+   "frameDurationsMs": [
+    420,
+    420,
+    420,
+    420
+   ],
+   "loop": true,
+   "anchorRow": 36
+  },
+  "hang": {
+   "row": 4,
+   "frames": 4,
+   "frameDurationsMs": [
+    600,
+    600,
+    600,
+    600
+   ],
+   "loop": true,
+   "anchorRow": 3
+  },
+  "sit": {
+   "row": 5,
+   "frames": 6,
+   "frameDurationsMs": [
+    420,
+    420,
+    420,
+    420,
+    140,
+    420
+   ],
+   "loop": true,
+   "anchorRow": 29
+  },
+  "work": {
+   "row": 6,
+   "frames": 2,
+   "frameDurationsMs": [
+    240,
+    240
+   ],
+   "loop": true,
+   "anchorRow": 29
+  },
+  "celebrate": {
+   "row": 7,
+   "frames": 5,
+   "frameDurationsMs": [
+    130,
+    200,
+    200,
+    160,
+    160
+   ],
+   "loop": true,
+   "anchorRow": 36
+  }
+ },
+ "portrait": {
+  "file": "portrait.png",
+  "width": 12,
+  "height": 12
+ }
+}

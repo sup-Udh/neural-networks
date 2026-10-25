@@ -1,0 +1,352 @@
+{
+ "tree-round-a": {
+  "src": "/assets/world/vegetation/tree-round-a.png",
+  "w": 42,
+  "h": 50,
+  "footX": 21,
+  "footY": 48
+ },
+ "tree-round-b": {
+  "src": "/assets/world/vegetation/tree-round-b.png",
+  "w": 42,
+  "h": 50,
+  "footX": 21,
+  "footY": 48
+ },
+ "tree-round-c": {
+  "src": "/assets/world/vegetation/tree-round-c.png",
+  "w": 42,
+  "h": 50,
+  "footX": 21,
+  "footY": 48
+ },
+ "tree-apple-a": {
+  "src": "/assets/world/vegetation/tree-apple-a.png",
+  "w": 42,
+  "h": 50,
+  "footX": 21,
+  "footY": 48
+ },
+ "tree-apple-b": {
+  "src": "/assets/world/vegetation/tree-apple-b.png",
+  "w": 42,
+  "h": 50,
+  "footX": 21,
+  "footY": 48
+ },
+ "tree-small-a": {
+  "src": "/assets/world/vegetation/tree-small-a.png",
+  "w": 30,
+  "h": 36,
+  "footX": 15,
+  "footY": 35
+ },
+ "tree-small-b": {
+  "src": "/assets/world/vegetation/tree-small-b.png",
+  "w": 30,
+  "h": 36,
+  "footX": 15,
+  "footY": 35
+ },
+ "pine-a": {
+  "src": "/assets/world/vegetation/pine-a.png",
+  "w": 22,
+  "h": 45,
+  "footX": 11,
+  "footY": 43
+ },
+ "pine-b": {
+  "src": "/assets/world/vegetation/pine-b.png",
+  "w": 28,
+  "h": 55,
+  "footX": 14,
+  "footY": 53
+ },
+ "cypress-grove-a": {
+  "src": "/assets/world/vegetation/cypress-grove-a.png",
+  "w": 61,
+  "h": 75,
+  "footX": 33,
+  "footY": 49
+ },
+ "cypress-grove-b": {
+  "src": "/assets/world/vegetation/cypress-grove-b.png",
+  "w": 53,
+  "h": 77,
+  "footX": 35,
+  "footY": 51
+ },
+ "mound-a": {
+  "src": "/assets/world/vegetation/mound-a.png",
+  "w": 48,
+  "h": 29,
+  "footX": 24,
+  "footY": 27
+ },
+ "mound-b": {
+  "src": "/assets/world/vegetation/mound-b.png",
+  "w": 40,
+  "h": 25,
+  "footX": 20,
+  "footY": 23
+ },
+ "mound-c": {
+  "src": "/assets/world/vegetation/mound-c.png",
+  "w": 32,
+  "h": 21,
+  "footX": 16,
+  "footY": 19
+ },
+ "sapling": {
+  "src": "/assets/world/vegetation/sapling.png",
+  "w": 12,
+  "h": 18,
+  "footX": 6,
+  "footY": 17
+ },
+ "flowering-bush": {
+  "src": "/assets/world/vegetation/flowering-bush.png",
+  "w": 26,
+  "h": 18,
+  "footX": 13,
+  "footY": 16
+ },
+ "tall-grass": {
+  "src": "/assets/world/vegetation/tall-grass.png",
+  "w": 17,
+  "h": 12,
+  "footX": 9,
+  "footY": 10
+ },
+ "flowers-pink": {
+  "src": "/assets/world/vegetation/flowers-pink.png",
+  "w": 17,
+  "h": 7,
+  "footX": 9,
+  "footY": 6
+ },
+ "flowers-white": {
+  "src": "/assets/world/vegetation/flowers-white.png",
+  "w": 17,
+  "h": 8,
+  "footX": 9,
+  "footY": 7
+ },
+ "flowers-yellow": {
+  "src": "/assets/world/vegetation/flowers-yellow.png",
+  "w": 16,
+  "h": 8,
+  "footX": 8,
+  "footY": 7
+ },
+ "mountain-xl": {
+  "src": "/assets/world/landmarks/mountain-xl.png",
+  "w": 94,
+  "h": 89,
+  "footX": 48,
+  "footY": 88
+ },
+ "mountain-l": {
+  "src": "/assets/world/landmarks/mountain-l.png",
+  "w": 76,
+  "h": 73,
+  "footX": 42,
+  "footY": 72
+ },
+ "mountain-m": {
+  "src": "/assets/world/landmarks/mountain-m.png",
+  "w": 60,
+  "h": 57,
+  "footX": 30,
+  "footY": 56
+ },
+ "mountain-s": {
+  "src": "/assets/world/landmarks/mountain-s.png",
+  "w": 46,
+  "h": 41,
+  "footX": 25,
+  "footY": 40
+ },
+ "cave-mouth": {
+  "src": "/assets/world/landmarks/cave-mouth.png",
+  "w": 43,
+  "h": 32,
+  "footX": 22,
+  "footY": 31
+ },
+ "stone-tower": {
+  "src": "/assets/world/landmarks/stone-tower.png",
+  "w": 34,
+  "h": 75,
+  "footX": 17,
+  "footY": 74
+ },
+ "castle": {
+  "src": "/assets/world/landmarks/castle.png",
+  "w": 92,
+  "h": 69,
+  "footX": 46,
+  "footY": 68
+ },
+ "ruin": {
+  "src": "/assets/world/landmarks/ruin.png",
+  "w": 54,
+  "h": 46,
+  "footX": 27,
+  "footY": 45
+ },
+ "crystals": {
+  "src": "/assets/world/landmarks/crystals.png",
+  "w": 27,
+  "h": 28,
+  "footX": 14,
+  "footY": 27
+ },
+ "house-gray-a": {
+  "src": "/assets/world/structures/house-gray-a.png",
+  "w": 62,
+  "h": 50,
+  "footX": 31,
+  "footY": 49
+ },
+ "house-gray-b": {
+  "src": "/assets/world/structures/house-gray-b.png",
+  "w": 62,
+  "h": 50,
+  "footX": 31,
+  "footY": 49
+ },
+ "house-white": {
+  "src": "/assets/world/structures/house-white.png",
+  "w": 74,
+  "h": 43,
+  "footX": 37,
+  "footY": 42
+ },
+ "house-white-flip": {
+  "src": "/assets/world/structures/house-white-flip.png",
+  "w": 74,
+  "h": 43,
+  "footX": 36,
+  "footY": 42
+ },
+ "bridge": {
+  "src": "/assets/world/structures/bridge.png",
+  "w": 29,
+  "h": 40,
+  "footX": 15,
+  "footY": 37
+ },
+ "fence-section": {
+  "src": "/assets/world/structures/fence-section.png",
+  "w": 40,
+  "h": 16,
+  "footX": 20,
+  "footY": 15
+ },
+ "ruin-pillar": {
+  "src": "/assets/world/structures/ruin-pillar.png",
+  "w": 14,
+  "h": 29,
+  "footX": 7,
+  "footY": 27
+ },
+ "tent": {
+  "src": "/assets/world/structures/tent.png",
+  "w": 38,
+  "h": 32,
+  "footX": 19,
+  "footY": 31
+ },
+ "hay-mound-a": {
+  "src": "/assets/world/props/hay-mound-a.png",
+  "w": 26,
+  "h": 23,
+  "footX": 13,
+  "footY": 21
+ },
+ "hay-mound-b": {
+  "src": "/assets/world/props/hay-mound-b.png",
+  "w": 26,
+  "h": 23,
+  "footX": 13,
+  "footY": 21
+ },
+ "rock-a": {
+  "src": "/assets/world/props/rock-a.png",
+  "w": 18,
+  "h": 13,
+  "footX": 9,
+  "footY": 11
+ },
+ "rock-b": {
+  "src": "/assets/world/props/rock-b.png",
+  "w": 28,
+  "h": 20,
+  "footX": 14,
+  "footY": 18
+ },
+ "rocks-water": {
+  "src": "/assets/world/props/rocks-water.png",
+  "w": 32,
+  "h": 20,
+  "footX": 17,
+  "footY": 16
+ },
+ "sign": {
+  "src": "/assets/world/props/sign.png",
+  "w": 24,
+  "h": 27,
+  "footX": 12,
+  "footY": 26
+ },
+ "lantern": {
+  "src": "/assets/world/props/lantern.png",
+  "w": 14,
+  "h": 33,
+  "footX": 7,
+  "footY": 31
+ },
+ "campfire": {
+  "src": "/assets/world/props/campfire.png",
+  "w": 20,
+  "h": 20,
+  "footX": 10,
+  "footY": 18
+ },
+ "stump": {
+  "src": "/assets/world/props/stump.png",
+  "w": 14,
+  "h": 15,
+  "footX": 7,
+  "footY": 13
+ },
+ "mushroom": {
+  "src": "/assets/world/props/mushroom.png",
+  "w": 14,
+  "h": 12,
+  "footX": 7,
+  "footY": 11
+ },
+ "field-chest": {
+  "src": "/assets/world/props/field-chest.png",
+  "w": 20,
+  "h": 15,
+  "footX": 10,
+  "footY": 14
+ },
+ "training-target": {
+  "src": "/assets/world/props/training-target.png",
+  "w": 22,
+  "h": 35,
+  "footX": 11,
+  "footY": 33
+ },
+ "pond-flowers": {
+  "src": "/assets/world/props/pond-flowers.png",
+  "w": 25,
+  "h": 9,
+  "footX": 13,
+  "footY": 7
+ }
+}
