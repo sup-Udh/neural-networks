@@ -52,6 +52,7 @@ export default function WorldMap(){
   const [camera,setCamera]=useState<Point>({x:0,y:0});
   const [position,setPosition]=useState<Point>(START);
   const [moving,setMoving]=useState(false);
+  const [arriving,setArriving]=useState(false);
   const [selected,setSelected]=useState<RegionId|null>(null);
   const [reducedMotion,setReducedMotion]=useState(false);
   const [lessonStarted,setLessonStarted]=useState(false);
@@ -59,6 +60,7 @@ export default function WorldMap(){
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [manualReduced,setManualReduced]=useState(false);
   const [isDragging,setIsDragging]=useState(false);
+  const [worldReady,setWorldReady]=useState(false);
   const completed=progress.challengeComplete;
 
   useEffect(()=>{
@@ -78,19 +80,30 @@ export default function WorldMap(){
     const observer=new ResizeObserver(([entry])=>{
       const width=entry.contentRect.width,height=entry.contentRect.height;
       setViewport({width,height});
+      const first=initial;
+      let restored:Point|null=null;
+      if(first){
+        initial=false;
+        try{
+          const saved=JSON.parse(window.localStorage.getItem("neuralarc:v1:world-camera")||"null") as Point|null;
+          restored=saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.y)?saved:{x:width/2-START.x,y:height/2-START.y};
+          const person=JSON.parse(window.localStorage.getItem("neuralarc:v1:world-player")||"null") as Point|null;
+          if(person&&Number.isFinite(person.x)&&Number.isFinite(person.y))setPosition(person);
+          const last=window.localStorage.getItem("neuralarc:v1:world-destination");
+          if(last&&REGIONS.some((region)=>region.id===last))setSelected(last as RegionId);
+        }catch{restored={x:width/2-START.x,y:height/2-START.y};}
+      }
       setCamera((current)=>{
-        let p=current;
-        if(initial){
-          initial=false;
-          try{const saved=JSON.parse(window.localStorage.getItem("neuralarc:v1:world-camera")||"null") as Point|null;if(saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.y))p=saved;else p={x:width/2-START.x,y:height/2-START.y};}
-          catch{p={x:width/2-START.x,y:height/2-START.y};}
-        }
+        const p=first?restored??{x:width/2-START.x,y:height/2-START.y}:current;
         return{x:Math.min(0,Math.max(width-WORLD.width,p.x)),y:Math.min(0,Math.max(height-WORLD.height,p.y))};
       });
+      if(first)setWorldReady(true);
     });
     observer.observe(el);return()=>observer.disconnect();
   },[]);
-  useEffect(()=>{try{window.localStorage.setItem("neuralarc:v1:world-camera",JSON.stringify(camera));}catch{/* Camera remains usable without storage. */}},[camera]);
+  useEffect(()=>{if(!worldReady)return;try{window.localStorage.setItem("neuralarc:v1:world-camera",JSON.stringify(camera));}catch{/* Camera remains usable without storage. */}},[camera,worldReady]);
+  useEffect(()=>{if(!worldReady)return;try{window.localStorage.setItem("neuralarc:v1:world-player",JSON.stringify(position));}catch{/* Player remains usable without storage. */}},[position,worldReady]);
+  useEffect(()=>{if(!worldReady)return;try{if(selected)window.localStorage.setItem("neuralarc:v1:world-destination",selected);else window.localStorage.removeItem("neuralarc:v1:world-destination");}catch{/* Selection remains usable without storage. */}},[selected,worldReady]);
   useEffect(()=>()=>movementTimers.current.forEach(window.clearTimeout),[]);
 
   const moveTo=(id:RegionId)=>{
@@ -102,12 +115,13 @@ export default function WorldMap(){
     for(let i=nearest+step;step>0?i<=targetIndex:i>=targetIndex;i+=step)points.push(route[i]);
     movementTimers.current.forEach(window.clearTimeout);movementTimers.current=[];
     setSelected(id);
+    setArriving(false);
     setCamera(clamp({x:viewport.width/2-target.x,y:viewport.height/2-target.y}));
     if(!points.length){setMoving(false);return;}
     if(reducedMotion){setPosition(target);setMoving(false);return;}
     setMoving(true);
     points.forEach((point,index)=>movementTimers.current.push(window.setTimeout(()=>{
-      setPosition(point);if(index===points.length-1){setMoving(false);}
+      setPosition(point);if(index===points.length-1){setMoving(false);setArriving(true);movementTimers.current.push(window.setTimeout(()=>setArriving(false),900));}
     },(index+1)*250)));
   };
   const status=(id:RegionId)=>id!=="grove"?"coming soon":completed?"completed":lessonStarted?"in progress":"available";
@@ -136,7 +150,7 @@ export default function WorldMap(){
     router.push("/learn/docs?lesson=neuron-basics&from=world");
   };
   const active=selected?REGIONS.find((r)=>r.id===selected)??null:null;
-  const characterState:AnimationState=moving?"walk":"idle";
+  const characterState:AnimationState=moving?"walk":arriving?"celebrate":"idle";
 
   return <main className="world-app">
     <header className="world-header">

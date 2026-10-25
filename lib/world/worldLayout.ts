@@ -38,7 +38,7 @@ for(const cell of path){const [x,y]=cell.split(",").map(Number);let mask=0;if(pa
 
 // Two crossings join opposite banks; small side spurs lead to water and woodland clearings.
 export const BRIDGES: readonly WorldProp[] = [
-  {asset:"bridge-horizontal",x:25*TILE-24,y:17*TILE-8,width:64,height:32,order:4},
+  {asset:"bridge-horizontal",x:28*TILE+8-32,y:17*TILE-8,width:64,height:32,order:4},
   {asset:"bridge-horizontal",x:42*TILE-24,y:21*TILE-8,width:64,height:32,order:4},
 ];
 
@@ -60,25 +60,29 @@ for(const cluster of WOODLANDS){
     const d=((x-cluster.x)/cluster.rx)**2+((y-cluster.y)/cluster.ry)**2;
     const variation=(x*17+y*29+x*y*5)%11;
     if(d<1 && variation<7 && !routeClear(x,y,3) && !waterNear(x,y,2) && !stone.has(key(x,y))){
-      if((x*3+y*5)%5!==0) props.push({asset:["broadleaf-1","broadleaf-2","broadleaf-3","round-tree","pine"][(x*7+y*3)%5],x:x*TILE-12,y:y*TILE-27,width:40,height:48,order:3});
+      if((x*3+y*5)%5!==0){
+        const asset=["broadleaf-1","broadleaf-2","broadleaf-3","round-tree","pine"][(x*7+y*3)%5];
+        const [width,height]=asset==="round-tree"?[32,40]:asset==="pine"?[32,48]:[40,48];
+        props.push({asset,x:x*TILE-Math.floor(width/2),y:y*TILE-height+8,width,height,order:3});
+      }
     }
   }
 }
 
 // Mountain ridge crests, separate boulders and a cave mouth make the highlands legible.
-props.push({asset:"mountain-ridge",x:24*TILE-8,y:4*TILE-26,width:112,height:96,order:1});
-props.push({asset:"mountain-ridge",x:33*TILE+4,y:7*TILE-22,width:96,height:84,order:1});
-props.push({asset:"mountain-ridge",x:41*TILE,y:8*TILE-18,width:80,height:70,order:1});
-add("activation-cave",29,11,80,64,2);
+props.push({asset:"mountain-ridge",x:24*TILE-8,y:4*TILE-26,width:128,height:112,order:1});
+props.push({asset:"mountain-ridge",x:34*TILE,y:7*TILE-22,width:128,height:112,order:1});
+props.push({asset:"mountain-ridge",x:42*TILE+4,y:8*TILE-18,width:128,height:112,order:1});
+add("activation-cave",29,11,64,48,2);
 add("crystal",27,15,24,32,2); add("crystal",36,16,24,32,2); add("crystal",39,12,24,32,2);
 add("rock-small",23,19,20,16,2); add("rock-pair",39,20,30,19,2); add("boulder",42,18,36,28,2);
 
 // Five destination buildings, cabins and watch points.
-props.push({asset:"field-station",x:9*TILE,y:17*TILE,width:64,height:64,order:2});
-props.push({asset:"network-foundry",x:45*TILE,y:30*TILE,width:88,height:72,order:2});
-props.push({asset:"ruined-watchtower",x:70*TILE,y:31*TILE,width:48,height:74,order:2});
+props.push({asset:"field-station",x:9*TILE,y:18*TILE,width:48,height:48,order:2});
+props.push({asset:"network-foundry",x:45*TILE,y:30*TILE,width:64,height:52,order:2});
+props.push({asset:"ruined-watchtower",x:70*TILE,y:32*TILE,width:36,height:56,order:2});
 // Training field and frontier settlement outpost.
-add("field-station",57,15,52,52,2); add("network-foundry",68,38,58,50,2);
+add("field-station",58,15,48,48,2); add("network-foundry",68,38,64,52,2);
 // Signposts, lookout stones, a camp, and a bridge approach.
 add("signpost",14,19,28,36,5); add("signpost",31,13,28,36,5); add("signpost",50,33,28,36,5);
 add("campfire",13,26,28,28,5); add("rock-pair",16,25,30,19,3); add("rock-small",6,29,20,16,3);

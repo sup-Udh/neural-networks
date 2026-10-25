@@ -25,9 +25,9 @@ function drawImage(ctx:CanvasRenderingContext2D,assets:Assets,name:string,x:numb
 function drawProps(ctx:CanvasRenderingContext2D,assets:Assets,props:readonly (typeof WORLD_PROPS)[number][]= WORLD_PROPS){
   for(const prop of props){
     const w=prop.width??32,h=prop.height??32;
-    if(prop.order===3){
+    if(prop.order===3||prop.order===2){
       const shadowY=prop.y+h-8;
-      ctx.fillStyle="#364b3470";ctx.fillRect(prop.x+8,shadowY,w-13,4);ctx.fillRect(prop.x+13,shadowY-2,w-23,2);
+      ctx.fillStyle="#304232";ctx.fillRect(prop.x+8,shadowY,w-13,2);ctx.fillRect(prop.x+13,shadowY+2,w-23,2);
     }
     drawImage(ctx,assets,prop.asset,prop.x,prop.y,w,h);
   }
@@ -51,7 +51,7 @@ export function renderWorld(ctx:CanvasRenderingContext2D,assets:Assets,dpr:numbe
   }
   for(const road of tileData.roads) drawImage(ctx,assets,`terrain/path-${road.mask}`,road.x*TILE,road.y*TILE,TILE,TILE);
   drawProps(ctx,assets,BRIDGES);
-  drawProps(ctx,assets,WORLD_PROPS.filter((p)=>(p.order??0)>1));
+  drawProps(ctx,assets,WORLD_PROPS.filter((p)=>(p.order??0)>1).sort((a,b)=>(a.y+(a.height??32))-(b.y+(b.height??32))));
   // Destination markers are small pixel-built sign plaques attached to their landmarks.
   for(const region of REGIONS){
     const active=region.id===state.selected,done=region.id==="grove"&&state.completed;
