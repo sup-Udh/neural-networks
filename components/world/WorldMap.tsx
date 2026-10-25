@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { PixelPortrait } from "@/components/companion/PixelSprite";
 import { useSavedCompanion } from "@/components/companion/companionStore";
@@ -72,6 +72,13 @@ export default function WorldMap() {
     (id: RegionId): Status => (id !== "grove" ? "upcoming" : completed ? "completed" : lessonStarted ? "in-progress" : "available"),
     [completed, lessonStarted],
   );
+
+  // The map owns the whole viewport only while it is the active page. A class (not :has) is needed because
+  // Next may keep this page mounted but hidden after navigating away, which must give scrolling back.
+  useLayoutEffect(() => {
+    document.body.classList.add("world-open");
+    return () => document.body.classList.remove("world-open");
+  }, []);
 
   // Preferences read from the browser, kept out of the first render so server and client markup match.
   useEffect(() => {
