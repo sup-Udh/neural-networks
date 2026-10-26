@@ -27,17 +27,21 @@
         pressedKeys[key] = status;
     }
 
-    document.addEventListener('keydown', function(e) {
+    function onKeyDown(e) {
         setKey(e, true);
-    });
+    }
 
-    document.addEventListener('keyup', function(e) {
+    function onKeyUp(e) {
         setKey(e, false);
-    });
+    }
 
-    window.addEventListener('blur', function() {
+    function onBlur() {
         pressedKeys = {};
-    });
+    }
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
 
     window.input = {
         isDown: function(key) {
@@ -49,6 +53,13 @@
           pressedKeys['RIGHT'] = false;
           pressedKeys['DOWN'] = false;
           pressedKeys['JUMP'] = false;
+        },
+        // React calls this when the game route unmounts, preventing duplicate
+        // document-level handlers if the learner later returns to the page.
+        destroy: function() {
+          document.removeEventListener('keydown', onKeyDown);
+          document.removeEventListener('keyup', onKeyUp);
+          window.removeEventListener('blur', onBlur);
         }
     };
 })();

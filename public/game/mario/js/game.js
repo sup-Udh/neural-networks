@@ -52,10 +52,14 @@ resources.onReady(init);
 var level;
 var sounds;
 var music;
+var gameTime = 0;
+var animationFrameId;
+var destroyed = false;
 
 //initialize
 var lastTime;
 function init() {
+  if (destroyed) return;
   music = {
     overworld: new Audio('/game/mario/sounds/aboveground_bgm.ogg'),
     underground: new Audio('/game/mario/sounds/underground_bgm.ogg'),
@@ -81,10 +85,9 @@ function init() {
   main();
 }
 
-var gameTime = 0;
-
 //set up the game loop
 function main() {
+  if (destroyed) return;
   var now = Date.now();
   var dt = (now - lastTime) / 1000.0;
 
@@ -92,8 +95,28 @@ function main() {
   render();
 
   lastTime = now;
-  requestAnimFrame(main);
+  animationFrameId = requestAnimFrame(main);
 }
+
+// The original demo never unmounted. React needs a way to stop its loop,
+// audio, and document-level input handlers when the route changes.
+window.__marioGameDestroy = function() {
+  destroyed = true;
+  window.cancelAnimationFrame(animationFrameId);
+  window.clearTimeout(animationFrameId);
+  if (music) {
+    Object.keys(music).forEach(function(key) {
+      music[key].pause();
+    });
+  }
+  if (sounds) {
+    Object.keys(sounds).forEach(function(key) {
+      sounds[key].pause();
+    });
+  }
+  if (window.input && window.input.destroy) window.input.destroy();
+  if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+};
 
 function update(dt) {
   gameTime += dt;

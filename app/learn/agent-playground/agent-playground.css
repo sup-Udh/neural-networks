@@ -1,0 +1,81 @@
+.agent-playground {
+  min-height: 100vh;
+  padding: 48px 24px;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+}
+
+.agent-playground__intro,
+.mario-game {
+  width: min(100%, 840px);
+  margin: 0 auto;
+}
+
+.agent-playground__intro {
+  margin-bottom: 24px;
+}
+
+.agent-playground__intro p {
+  margin: 0 0 8px;
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.agent-playground__intro h1 {
+  margin: 0;
+  font-size: clamp(32px, 6vw, 56px);
+}
+
+.agent-playground__intro span {
+  display: block;
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+}
+
+.mario-game {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: #347fc3;
+}
+
+.mario-game__host {
+  display: grid;
+  min-height: 320px;
+  place-items: center;
+}
+
+.mario-game__host canvas {
+  display: block;
+  width: min(100%, 762px);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.mario-game__message {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  transform: translate(-50%, -50%);
+}
+
+.mario-game__message--error {
+  color: #ffb4aa;
+}
+
+@media (max-width: 640px) {
+  .agent-playground {
+    padding: 32px 16px;
+  }
+
+  .mario-game__host {
+    min-height: 220px;
+  }
+}
