@@ -3,6 +3,10 @@
     var resourceCache = {};
     var loading = [];
     var readyCallbacks = [];
+    // The engine is served by Next from /public, while the original files use
+    // sprite paths relative to index.html. Keep the original sprite keys so
+    // existing entities continue to use resources.get('sprites/...').
+    var assetBase = '/game/mario/';
 
     // Load an image url or an array of image urls
     function load(urlOrArr) {
@@ -30,7 +34,7 @@
                 }
             };
             resourceCache[url] = false;
-            img.src = url;
+            img.src = assetBase + url;
         }
     }
 

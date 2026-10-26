@@ -24,7 +24,13 @@ var player = new Mario.Player([0,0]);
 canvas.width = 762;
 canvas.height = 720;
 ctx.scale(3,3);
-document.body.appendChild(canvas);
+// MarioGame.tsx sets this before loading the legacy scripts. The canvas stays
+// inside the React-owned game area instead of being attached to the site body.
+var gameHost = window.__marioGameHost;
+if (!gameHost) {
+  throw new Error('Mario needs a game host. Set window.__marioGameHost before loading game.js.');
+}
+gameHost.appendChild(canvas);
 
 //viewport
 var vX = 0,
@@ -51,24 +57,24 @@ var music;
 var lastTime;
 function init() {
   music = {
-    overworld: new Audio('sounds/aboveground_bgm.ogg'),
-    underground: new Audio('sounds/underground_bgm.ogg'),
-    clear: new Audio('sounds/stage_clear.wav'),
-    death: new Audio('sounds/mariodie.wav')
+    overworld: new Audio('/game/mario/sounds/aboveground_bgm.ogg'),
+    underground: new Audio('/game/mario/sounds/underground_bgm.ogg'),
+    clear: new Audio('/game/mario/sounds/stage_clear.wav'),
+    death: new Audio('/game/mario/sounds/mariodie.wav')
   };
   sounds = {
-    smallJump: new Audio('sounds/jump-small.wav'),
-    bigJump: new Audio('sounds/jump-super.wav'),
-    breakBlock: new Audio('sounds/breakblock.wav'),
-    bump: new Audio('sounds/bump.wav'),
-    coin: new Audio('sounds/coin.wav'),
-    fireball: new Audio('sounds/fireball.wav'),
-    flagpole: new Audio('sounds/flagpole.wav'),
-    kick: new Audio('sounds/kick.wav'),
-    pipe: new Audio('sounds/pipe.wav'),
-    itemAppear: new Audio('sounds/itemAppear.wav'),
-    powerup: new Audio('sounds/powerup.wav'),
-    stomp: new Audio('sounds/stomp.wav')
+    smallJump: new Audio('/game/mario/sounds/jump-small.wav'),
+    bigJump: new Audio('/game/mario/sounds/jump-super.wav'),
+    breakBlock: new Audio('/game/mario/sounds/breakblock.wav'),
+    bump: new Audio('/game/mario/sounds/bump.wav'),
+    coin: new Audio('/game/mario/sounds/coin.wav'),
+    fireball: new Audio('/game/mario/sounds/fireball.wav'),
+    flagpole: new Audio('/game/mario/sounds/flagpole.wav'),
+    kick: new Audio('/game/mario/sounds/kick.wav'),
+    pipe: new Audio('/game/mario/sounds/pipe.wav'),
+    itemAppear: new Audio('/game/mario/sounds/itemAppear.wav'),
+    powerup: new Audio('/game/mario/sounds/powerup.wav'),
+    stomp: new Audio('/game/mario/sounds/stomp.wav')
   };
   Mario.oneone();
   lastTime = Date.now();
