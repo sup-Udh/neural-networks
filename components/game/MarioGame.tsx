@@ -38,6 +38,7 @@ declare global {
   interface Window {
     __marioGameHost?: HTMLElement;
     __marioGameDestroy?: () => void;
+    __marioEnableAudio?: () => void;
   }
 }
 
@@ -62,6 +63,12 @@ export default function MarioGame() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<GameStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+
+  const enableAudio = () => {
+    // This runs directly from the learner's interaction, which satisfies the
+    // browser rule that blocked the original level-start music.
+    window.__marioEnableAudio?.();
+  };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -102,7 +109,13 @@ export default function MarioGame() {
 
   return (
     <section className="mario-game" aria-label="Mario game">
-      <div className="mario-game__host" ref={hostRef} />
+      <div
+        className="mario-game__host"
+        ref={hostRef}
+        tabIndex={0}
+        onPointerDown={enableAudio}
+        onKeyDown={enableAudio}
+      />
       {status === "loading" && <p className="mario-game__message">Loading game…</p>}
       {status === "error" && <p className="mario-game__message mario-game__message--error">{error}</p>}
     </section>

@@ -55,6 +55,7 @@ var music;
 var gameTime = 0;
 var animationFrameId;
 var destroyed = false;
+var blockedAudio = null;
 
 // Modern browsers reject play() until the learner has interacted with the
 // document. Always consume that Promise so an optional sound never crashes the
@@ -62,11 +63,20 @@ var destroyed = false;
 function playAudio(audio) {
   var playing = audio.play();
   if (playing && playing.catch) {
-    playing.catch(function() {
-      // Sound remains unavailable until a browser-approved interaction.
+    playing.catch(function(error) {
+      // Remember the blocked track so a click or key press can start it after
+      // the browser grants permission for audio playback.
+      if (error && error.name === 'NotAllowedError') blockedAudio = audio;
     });
   }
 }
+
+window.__marioEnableAudio = function() {
+  if (!blockedAudio) return;
+  var audio = blockedAudio;
+  blockedAudio = null;
+  playAudio(audio);
+};
 
 //initialize
 var lastTime;
@@ -128,6 +138,8 @@ window.__marioGameDestroy = function() {
   }
   if (window.input && window.input.destroy) window.input.destroy();
   if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+  blockedAudio = null;
+  delete window.__marioEnableAudio;
 };
 
 function update(dt) {
