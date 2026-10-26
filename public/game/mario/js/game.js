@@ -56,6 +56,18 @@ var gameTime = 0;
 var animationFrameId;
 var destroyed = false;
 
+// Modern browsers reject play() until the learner has interacted with the
+// document. Always consume that Promise so an optional sound never crashes the
+// game or creates an unhandled rejection during level startup.
+function playAudio(audio) {
+  var playing = audio.play();
+  if (playing && playing.catch) {
+    playing.catch(function() {
+      // Sound remains unavailable until a browser-approved interaction.
+    });
+  }
+}
+
 //initialize
 var lastTime;
 function init() {

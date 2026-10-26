@@ -110,7 +110,7 @@
   };
 
   Goomba.prototype.stomp = function() {
-    sounds.stomp.play();
+    playAudio(sounds.stomp);
     player.bounce = true;
     this.sprite.pos[0] = 32;
     this.sprite.speed = 0;
@@ -119,7 +119,7 @@
   };
 
   Goomba.prototype.bump = function() {
-    sounds.kick.play();
+    playAudio(sounds.kick);
     this.sprite.img = 'sprites/enemyr.png';
     this.flipping = true;
     this.pos[1] -= 1;

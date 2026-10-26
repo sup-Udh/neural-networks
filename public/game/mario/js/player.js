@@ -113,10 +113,10 @@
 			this.vel[1] = -6;
 			if (this.power === 0) {
 				sounds.smallJump.currentTime = 0;
-				sounds.smallJump.play();
+                playAudio(sounds.smallJump);
 			} else {
 				sounds.bigJump.currentTime = 0;
-				sounds.bigJump.play();
+                playAudio(sounds.bigJump);
 			}
 		}
 	};
@@ -330,7 +330,7 @@
 	};
 
 	Player.prototype.powerUp = function(idx) {
-		sounds.powerup.play();
+        playAudio(sounds.powerup);
 	  this.powering = [0,5,2,5,1,5,2,5,1,5,2,5,3,5,1,5,2,5,3,5,1,5,4];
 		this.touchedItem = idx;
 
@@ -361,7 +361,7 @@
 		if (this.power === 0) { //if you're already small, you dead!
 			this.die();
 		} else { //otherwise, you get turned into small mario
-			sounds.pipe.play();
+            playAudio(sounds.pipe);
 			this.powering = [0,5,1,5,2,5,1,5,2,5,1,5,2,5,1,5,2,5,1,5,2,5,3];
 			this.shift = [0,16,-16,16];
 			this.sprite.pos = [160, 0];
@@ -378,7 +378,7 @@
 		music.overworld.pause();
 		music.underground.pause();
 		music.overworld.currentTime = 0;
-		music.death.play();
+        playAudio(music.death);
 		this.noWalk();
 		this.noRun();
 		this.noJump();
@@ -405,7 +405,7 @@
 	}
 
 	Player.prototype.pipe = function(direction, destination) {
-		sounds.pipe.play();
+        playAudio(sounds.pipe);
 		this.piping = true;
 		this.pipeLoc = destination;
 		switch(direction) {

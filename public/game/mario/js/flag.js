@@ -31,9 +31,9 @@
     if (this.hit) return;
     if (player.pos[0] + 8 >= this.pos[0]) {
       music.overworld.pause();
-      sounds.flagpole.play();
+      playAudio(sounds.flagpole);
       setTimeout(function() {
-        music.clear.play();
+        playAudio(music.clear);
       }, 2000);
       this.hit = true;
       player.flag();

@@ -1,12 +1,10 @@
 "use client";
 
+
+
 import { useEffect, useRef, useState } from "react";
 
-/**
- * This order comes from the original Mario project's index.html. These are
- * classic browser scripts, not ES modules: every script adds globals used by
- * scripts that follow it, so they must load one at a time in this order.
- */
+// must load in this order
 const LEGACY_SCRIPTS = [
   "util.js",
   "input.js",
@@ -38,16 +36,14 @@ const SCRIPT_BASE = "/game/mario/js/";
 
 declare global {
   interface Window {
-    /** The element where the legacy engine appends its canvas. */
     __marioGameHost?: HTMLElement;
-    /** Removes the legacy game loop, keyboard listeners, audio, and canvas. */
     __marioGameDestroy?: () => void;
   }
 }
 
 type GameStatus = "loading" | "ready" | "error";
+// adding the scripts in order
 
-/** Add one classic script and wait until it has executed before continuing. */
 function loadScript(src: string, scripts: HTMLScriptElement[]): Promise<void> {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -61,14 +57,7 @@ function loadScript(src: string, scripts: HTMLScriptElement[]): Promise<void> {
   });
 }
 
-/**
- * React host for the original JavaScript Canvas game.
- *
- * The game itself stays in public/game/mario. This component only supplies a
- * place for its canvas and loads the old global scripts in their dependency
- * order. Keeping this boundary small makes it easier to replace the engine or
- * add an agent-control layer later.
- */
+
 export default function MarioGame() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<GameStatus>("loading");

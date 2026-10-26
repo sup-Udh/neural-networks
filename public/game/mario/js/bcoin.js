@@ -17,7 +17,7 @@
   //it's literally impossible for these to move left or right.
   Bcoin.prototype.spawn = function() {
     sounds.coin.currentTime = 0.05;
-    sounds.coin.play();
+    playAudio(sounds.coin);
     this.idx = level.items.length;
     level.items.push(this);
     this.active = true;
