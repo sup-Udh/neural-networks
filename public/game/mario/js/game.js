@@ -107,13 +107,65 @@ function init() {
   main();
 }
 
+// External-controller adapter (used by the React wrapper). Nothing here changes
+// physics: it only lets a controller supply the key states, pause the loop,
+// reset the level, and read a plain-data snapshot of the real game objects.
+//   keys:         null -> the human keyboard (input.js) is used. An object like
+//                 {RIGHT:true, RUN:true, JUMP:false} replaces the keyboard.
+//   beforeUpdate: called once per simulated frame, before input is read.
+var marioHooks = window.__marioHooks = {
+  paused: false,
+  keys: null,
+  beforeUpdate: null,
+  frame: 0,
+  snapshot: function() {
+    var h = player.power > 0 ? 32 : 16;
+    var enemies = [];
+    level.enemies.forEach(function(e) {
+      var type = e instanceof Mario.Goomba ? 'goomba' : (e.shell ? 'koopaShell' : 'koopa');
+      enemies.push({ type: type, x: e.pos[0], y: e.pos[1], vx: e.vel[0], dying: !!e.dying });
+    });
+    return {
+      frame: marioHooks.frame,
+      viewportX: vX,
+      levelExitX: level.exit * 16,
+      rows: 15,
+      player: {
+        x: player.pos[0], y: player.pos[1], vx: player.vel[0], vy: player.vel[1],
+        width: 16, height: h, standing: !!player.standing, power: player.power,
+        coins: player.coins, dying: !!player.dying, flagging: !!player.flagging,
+        exiting: !!player.exiting, piping: !!player.piping, noInput: !!player.noInput
+      },
+      enemies: enemies,
+      isSolid: function(col, row) {
+        if (row < 0 || row >= 15 || col < 0) return false;
+        return !!(level.statics[row][col] || level.blocks[row][col]);
+      }
+    };
+  },
+  // Same sequence the game itself runs after Mario dies.
+  reset: function() {
+    player = new Mario.Player(level.playerPos);
+    level.loader.call();
+    input.reset();
+    gameTime = 0;
+    marioHooks.frame = 0;
+  }
+};
+
+function isKeyDown(key) {
+  return marioHooks.keys ? !!marioHooks.keys[key] : input.isDown(key);
+}
+
 //set up the game loop
 function main() {
   if (destroyed) return;
   var now = Date.now();
   var dt = (now - lastTime) / 1000.0;
 
-  update(dt);
+  if (!marioHooks.paused) {
+    update(dt);
+  }
   render();
 
   lastTime = now;
@@ -140,10 +192,13 @@ window.__marioGameDestroy = function() {
   if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
   blockedAudio = null;
   delete window.__marioEnableAudio;
+  delete window.__marioHooks;
 };
 
 function update(dt) {
   gameTime += dt;
+  marioHooks.frame += 1;
+  if (marioHooks.beforeUpdate) marioHooks.beforeUpdate();
 
   handleInput(dt);
   updateEntities(dt, gameTime);
@@ -154,28 +209,28 @@ function update(dt) {
 function handleInput(dt) {
   if (player.piping || player.dying || player.noInput) return; //don't accept input
 
-  if (input.isDown('RUN')){
+  if (isKeyDown('RUN')){
     player.run();
   } else {
     player.noRun();
   }
-  if (input.isDown('JUMP')) {
+  if (isKeyDown('JUMP')) {
     player.jump();
   } else {
     //we need this to handle the timing for how long you hold it
     player.noJump();
   }
 
-  if (input.isDown('DOWN')) {
+  if (isKeyDown('DOWN')) {
     player.crouch();
   } else {
     player.noCrouch();
   }
 
-  if (input.isDown('LEFT')) { // 'd' or left arrow
+  if (isKeyDown('LEFT')) { // 'd' or left arrow
     player.moveLeft();
   }
-  else if (input.isDown('RIGHT')) { // 'k' or right arrow
+  else if (isKeyDown('RIGHT')) { // 'k' or right arrow
     player.moveRight();
   } else {
     player.noWalk();
