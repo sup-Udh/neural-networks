@@ -15,7 +15,7 @@ it("scratch", async () => {
   const core = new HeadlessEvaluator(hooks);
   const ev = new InProcessEvaluator(hooks);
   const out: string[] = [];
-  const scene = captureSceneSync(core, starterModel(), DEFAULT_EVAL_CONFIG, 850);
+  const scene = captureSceneSync(core, starterModel(), DEFAULT_EVAL_CONFIG, 0);
   out.push("SCENE " + JSON.stringify(scene));
   const base = await evaluateJob(ev, { label: "starter", model: starterModel(), role: "matched" }, DEFAULT_EVAL_CONFIG, "t");
   out.push("STARTER matched " + JSON.stringify(base.episodes.map((e) => [e.scenarioId.slice(-3), e.termination, Math.round(e.distance), e.frames, Math.round(e.fitness)])));

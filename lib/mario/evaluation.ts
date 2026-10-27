@@ -49,11 +49,13 @@ export interface EvaluationConfig {
   stallFrames: number;
   fitness: FitnessWeights;
   /**
-   * Scenario = World 1-1 reset, then this many frames with no input before the controller takes over. The game keeps
-   * running (enemies walk toward Mario), so the encounters happen at different moments. Nothing is teleported or edited;
-   * it is a controlled variation that uses only the real game loop. 0 is the canonical scenario.
+   * Scenario = World 1-1 reset, then this many frames of the game's own RIGHT+RUN input before the controller takes
+   * over, so the network meets the level from a different position and speed. Nothing is teleported or edited: it is
+   * the real game loop with real key input. (Idle frames were tried first and change nothing, because the game freezes
+   * enemies until they scroll into view.) 0 is the canonical scenario. Distance is still measured from the level start
+   * and `frames` counts frames after the hand-over.
    */
-  startDelayFrames: number;
+  approachFrames: number;
   scenarioId: string;
 }
 
@@ -61,7 +63,7 @@ export const DEFAULT_EVAL_CONFIG: EvaluationConfig = {
   maxFrames: 2400,
   stallFrames: 300,
   fitness: { progressPerPixel: 1, completionBonus: 2000, deathPenalty: 100, timeBonusMax: 500 },
-  startDelayFrames: 0,
+  approachFrames: 0,
   scenarioId: CANONICAL_SCENARIO_ID,
 };
 
@@ -94,7 +96,7 @@ export function validateEvalConfig(c: EvaluationConfig): string[] {
   if (!(Number.isFinite(f.completionBonus) && f.completionBonus >= 0)) e.push("Completion bonus must be 0 or more.");
   if (!(Number.isFinite(f.deathPenalty) && f.deathPenalty >= 0)) e.push("Death penalty must be 0 or more.");
   if (!(Number.isFinite(f.timeBonusMax) && f.timeBonusMax >= 0 && f.timeBonusMax <= 5000)) e.push("Time bonus must be between 0 and 5000.");
-  if (!Number.isInteger(c.startDelayFrames) || c.startDelayFrames < 0 || c.startDelayFrames > 300) e.push("Start delay must be a whole number from 0 to 300 frames.");
+  if (!Number.isInteger(c.approachFrames) || c.approachFrames < 0 || c.approachFrames > 150) e.push("Approach frames must be a whole number from 0 to 150.");
   return e;
 }
 
@@ -151,10 +153,16 @@ export class HeadlessEvaluator {
     hooks.beforeUpdate = null;
     hooks.reset();
     hooks.keys = {};
-    // Scenario start delay: real game frames with no input (see EvaluationConfig.startDelayFrames).
-    for (let d = 0; d < config.startDelayFrames; d++) hooks.step();
+    const levelStartX = hooks.snapshot().player.x;
+    // Scenario approach: the game's own RIGHT+RUN input for a fixed number of frames (see EvaluationConfig.approachFrames).
+    // RUN is withheld on the very first frame by the adapter until the game has initialised the player (see isKeyDown).
+    for (let d = 0; d < config.approachFrames; d++) {
+      hooks.keys = { RIGHT: true, RUN: true };
+      hooks.step();
+    }
+    hooks.keys = {};
     const driver = new KeyDriver();
-    const tracker = new EpisodeTracker();
+    const tracker = new EpisodeTracker(levelStartX);
 
     let metrics: EpisodeMetrics | null = null;
     let bestX = -Infinity;
@@ -212,26 +220,30 @@ export interface SceneCapture {
 
 /** Anything that can capture a scene (the worker client and the in-process evaluator both can). */
 export interface SceneProber {
-  captureScene(model: NetworkModel, config: EvaluationConfig, targetX: number): Promise<SceneCapture | null>;
+  captureScene(model: NetworkModel, config: EvaluationConfig, minX: number): Promise<SceneCapture | null>;
 }
 
 /**
- * Plays the model in the real game from the canonical start until Mario's x reaches `targetX` (or the episode ends,
- * returning null), then reports what the network saw and chose at that exact moment. Nothing is staged or teleported.
+ * Plays the model in the real game from the canonical start and returns the FIRST moment (at or beyond `minX`) where the
+ * current encoding and the pipe-blind encoding lead the network to different actions, or null if that never happens.
+ * Nothing is staged or teleported: it is a real moment of a real episode.
  */
-export function captureSceneSync(evaluator: HeadlessEvaluator, model: NetworkModel, config: EvaluationConfig, targetX: number): SceneCapture | null {
+export function captureSceneSync(evaluator: HeadlessEvaluator, model: NetworkModel, config: EvaluationConfig, minX = 0): SceneCapture | null {
   let scene: SceneCapture | null = null;
   evaluator.evaluateSync(model, config, "scene", (p) => {
-    if (p.snapshot.player.x < targetX || !p.step.observation.available || !p.step.trace) return;
+    if (p.snapshot.player.x < minX || !p.step.observation.available || !p.step.trace) return;
     const blind = encodeObservation({ ...p.snapshot, isSolid: p.snapshot.isSolidTile ?? p.snapshot.isSolid });
     if (!blind.available) return;
     const blindOut = forward(model, blind.inputs).output;
+    const current = selectAction(p.step.trace.output).action;
+    const blindAction = selectAction(blindOut).action;
+    if (current === blindAction) return;
     scene = {
       frame: p.frame,
       x: p.snapshot.player.x,
       raw: p.step.observation.raw,
-      current: { inputs: p.step.observation.inputs, outputs: p.step.trace.output, action: selectAction(p.step.trace.output).action },
-      pipeBlind: { inputs: blind.inputs, outputs: blindOut, action: selectAction(blindOut).action },
+      current: { inputs: p.step.observation.inputs, outputs: p.step.trace.output, action: current },
+      pipeBlind: { inputs: blind.inputs, outputs: blindOut, action: blindAction },
     };
     return true;
   });

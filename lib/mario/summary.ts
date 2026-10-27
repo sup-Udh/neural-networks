@@ -4,7 +4,7 @@ import type { EvaluationResult, Termination } from "./evaluation";
 /** Compact per-episode record (no model, no raw trace) so many can be stored. */
 export interface EpisodeRecord {
   scenarioId: string;
-  startDelayFrames: number;
+  approachFrames: number;
   termination: Termination;
   distance: number;
   /** 0..1 fraction of the way to the flagpole. */
@@ -15,7 +15,7 @@ export interface EpisodeRecord {
 
 export function toEpisodeRecord(r: EvaluationResult): EpisodeRecord {
   return {
-    scenarioId: r.config.scenarioId, startDelayFrames: r.config.startDelayFrames, termination: r.termination,
+    scenarioId: r.config.scenarioId, approachFrames: r.config.approachFrames, termination: r.termination,
     distance: r.metrics.distance, progress: r.metrics.progress, frames: r.metrics.frames, fitness: r.fitness,
   };
 }
@@ -80,7 +80,7 @@ export interface Comparison {
 
 /** Honest scope of every verdict. */
 export const VERDICT_NOTE =
-  "Verdicts compare measured outcomes on this exact set of start timings. They are not statistical significance tests: the game is deterministic, so repeating the same scenario just repeats the same run.";
+  "Verdicts compare measured outcomes on this exact set of start scenarios. They are not statistical significance tests: the game is deterministic, so repeating the same scenario just repeats the same run.";
 
 export const MIN_EPISODES_FOR_VERDICT = 3;
 

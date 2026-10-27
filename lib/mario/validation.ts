@@ -7,25 +7,25 @@ import type { EpisodeRecord, EvalSummary } from "./summary";
 
 /*
  * Evaluation roles
- *  development  The canonical scenario only (World 1-1, no start delay). The ONLY thing evolution ever sees.
- *  validation   Held-out start timings. Never used to pick parents or mutate anything; run after training.
+ *  development  The canonical scenario only (World 1-1, no approach). The ONLY thing evolution ever sees.
+ *  validation   Held-out approach starts. Never used to pick parents or mutate anything; run after training.
  *  matched      canonical + held-out. Used to compare two or more models under an identical protocol.
  * "Held-out" means held out from evolution, not unseen levels: the game has one level, so this measures robustness
- * to when enemies arrive, not generalisation to new levels.
+ * to the position and speed at which control begins, not generalisation to new levels.
  */
 export type EvalRole = "development" | "validation" | "matched";
 
-/** Start delays (frames of no input before the controller takes over) that evolution never trains on. */
-export const HELD_OUT_DELAYS = [11, 29, 47, 73, 97] as const;
+/** Approach lengths (frames of real RIGHT+RUN input before the controller takes over) that evolution never trains on. */
+export const HELD_OUT_APPROACHES = [15, 35, 55, 75, 95] as const;
 
-export const scenarioIdForDelay = (delay: number) => (delay === 0 ? CANONICAL_SCENARIO_ID : `w1-1-delay-${delay}`);
+export const scenarioIdForApproach = (frames: number) => (frames === 0 ? CANONICAL_SCENARIO_ID : `w1-1-approach-${frames}`);
 
 /** The exact list of episode configurations for a role, derived from one base config so budgets stay identical. */
 export function scenariosFor(role: EvalRole, base: EvaluationConfig): EvaluationConfig[] {
-  const at = (delay: number): EvaluationConfig => ({ ...base, startDelayFrames: delay, scenarioId: scenarioIdForDelay(delay) });
+  const at = (frames: number): EvaluationConfig => ({ ...base, approachFrames: frames, scenarioId: scenarioIdForApproach(frames) });
   if (role === "development") return [at(0)];
-  if (role === "validation") return HELD_OUT_DELAYS.map(at);
-  return [at(0), ...HELD_OUT_DELAYS.map(at)];
+  if (role === "validation") return HELD_OUT_APPROACHES.map(at);
+  return [at(0), ...HELD_OUT_APPROACHES.map(at)];
 }
 
 export interface EvaluationRecord {

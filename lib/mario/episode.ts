@@ -22,6 +22,9 @@ export class EpisodeTracker {
   private lastFrame = -1;
   private wasGrounded = true;
 
+  /** `fixedStartX` pins where distance is measured from (e.g. the level start, when control begins later). */
+  constructor(private fixedStartX?: number) {}
+
   reset() {
     this.metrics = null;
     this.lastFrame = -1;
@@ -36,7 +39,7 @@ export class EpisodeTracker {
     this.lastFrame = s.frame;
     const p = s.player;
     if (!this.metrics) {
-      this.metrics = { status: "running", frames: 0, startX: p.x, maxX: p.x, distance: 0, progress: 0, jumps: 0, coins: 0 };
+      this.metrics = { status: "running", frames: 0, startX: this.fixedStartX ?? p.x, maxX: p.x, distance: 0, progress: 0, jumps: 0, coins: 0 };
       this.wasGrounded = p.standing;
     }
     const m = this.metrics;

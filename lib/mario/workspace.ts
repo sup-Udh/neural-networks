@@ -109,10 +109,17 @@ export function editActivation(w: Workspace, layer: number, activation: Activati
 export function resetModel(w: Workspace): Workspace {
   return { ...w, model: starterModel(), revision: w.revision + 1, basedOn: "Starter" };
 }
+/** Origin of the active model, from what it was last based on (null = edited by hand since). */
+export function originFromBasedOn(basedOn: string | null, snapshots: readonly Snapshot[]): ModelOrigin {
+  if (basedOn === null) return "manual-edit";
+  if (basedOn === "Starter") return "starter";
+  if (basedOn.startsWith("Trained")) return "evolved";
+  return snapshots.find((x) => x.name === basedOn)?.origin ?? "unknown";
+}
+
 export function saveSnapshot(w: Workspace, name: string): Workspace {
   const trimmed = name.trim() || `Snapshot ${w.snapshots.length + 1}`;
-  const inherited = w.snapshots.find((x) => x.name === w.basedOn)?.origin;
-  const origin: ModelOrigin = w.basedOn === null ? "manual-edit" : w.basedOn === "Starter" ? "starter" : w.basedOn.startsWith("Trained") ? "evolved" : (inherited ?? "unknown");
+  const origin = originFromBasedOn(w.basedOn, w.snapshots);
   const snap: Snapshot = { id: newId("snap"), name: trimmed, createdAt: Date.now(), model: cloneModel(w.model), policyCode: w.activeCode, origin, provenance: null };
   return { ...w, snapshots: [...w.snapshots, snap], basedOn: trimmed };
 }
