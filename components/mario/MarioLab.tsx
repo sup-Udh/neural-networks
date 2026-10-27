@@ -15,10 +15,13 @@ import NetworkViz from "./NetworkViz";
 import type { Selected } from "./NetworkViz";
 import ParameterEditor from "./ParameterEditor";
 import PolicyEditor from "./PolicyEditor";
+import TrainingPanel from "./TrainingPanel";
+import { trainingStore } from "@/lib/mario/trainingStore";
+import type { NetworkModel } from "@/lib/nn/network";
 import "./mario-lab.css";
 
-type Tab = "network" | "parameters" | "policy" | "experiments";
-const TABS: [Tab, string][] = [["network", "Network"], ["parameters", "Parameters"], ["policy", "Policy code"], ["experiments", "Experiments"]];
+type Tab = "network" | "parameters" | "policy" | "training" | "experiments";
+const TABS: [Tab, string][] = [["network", "Network"], ["parameters", "Parameters"], ["policy", "Policy code"], ["training", "Training"], ["experiments", "Experiments"]];
 const MODES: [ControlMode, string][] = [["human", "Human (keyboard)"], ["network", "Neural network"], ["policy", "Policy code"]];
 
 export default function MarioLab() {
@@ -86,6 +89,8 @@ export default function MarioLab() {
 
   useEffect(
     () => () => {
+      // Leaving the page must not leave a training run (and its worker) alive in the background.
+      trainingStore.stop();
       controllerRef.current?.detach();
       controllerRef.current = null;
       hooksRef.current = null;
@@ -116,6 +121,14 @@ export default function MarioLab() {
   const run = () => {
     reset();
     setPause(false);
+  };
+
+  const promote = (model: NetworkModel, label: string, runIt: boolean) => {
+    update((w) => W.promoteModel(w, model, label));
+    if (runIt) {
+      setMode("network");
+      run();
+    }
   };
 
   const decision = live.decision;
@@ -187,6 +200,16 @@ export default function MarioLab() {
               onDraft={(c) => update((w) => W.setDraftCode(w, c))}
               onApply={() => update(W.applyCode)}
               onReset={() => update(W.resetCode)}
+            />
+          )}
+          {tab === "training" && (
+            <TrainingPanel
+              ws={ws}
+              onPromote={promote}
+              onSaveSnapshot={(name, model) => update((w) => W.addSnapshot(w, name, model))}
+              onDeleteTraining={(id) => update((w) => W.deleteTraining(w, id))}
+              onDismissNotices={() => update(W.dismissNotices)}
+              storageError={W.workspaceStore.getWriteError()}
             />
           )}
           {tab === "experiments" && (

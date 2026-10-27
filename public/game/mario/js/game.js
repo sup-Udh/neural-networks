@@ -137,24 +137,49 @@ var marioHooks = window.__marioHooks = {
         exiting: !!player.exiting, piping: !!player.piping, noInput: !!player.noInput
       },
       enemies: enemies,
+      // A tile cell is solid if a static/block tile occupies it OR a warp pipe's hitbox overlaps it. Pipes created
+      // with putRealPipe live in level.pipes (not in the tile grids) but block Mario like walls.
       isSolid: function(col, row) {
         if (row < 0 || row >= 15 || col < 0) return false;
-        return !!(level.statics[row][col] || level.blocks[row][col]);
+        if (level.statics[row][col] || level.blocks[row][col]) return true;
+        var x0 = col * 16, y0 = row * 16;
+        for (var i = 0; i < level.pipes.length; i++) {
+          var p = level.pipes[i];
+          if (p.pos[0] < x0 + 16 && p.pos[0] + p.hitbox[2] > x0 && p.pos[1] < y0 + 16 && p.pos[1] + p.hitbox[3] > y0) return true;
+        }
+        return false;
       }
     };
   },
-  // Same sequence the game itself runs after Mario dies.
+  // Restart World 1-1 from a clean state. The game's own death path reloads `level.loader`, which for the
+  // underground tunnel would reload the tunnel, so reset always rebuilds the first level explicitly.
   reset: function() {
-    player = new Mario.Player(level.playerPos);
-    level.loader.call();
+    player = new Mario.Player([56, 192]);
+    fireballs.length = 0;
+    updateables = [];
+    Mario.oneone();
     input.reset();
     gameTime = 0;
+    vX = 0;
     marioHooks.frame = 0;
+  },
+  // Advance the simulation exactly one frame with a fixed time step. Only for use when the animation loop is not
+  // running (the headless evaluator never schedules requestAnimationFrame); calling it next to the live loop
+  // would double-update the physics.
+  step: function(dt) {
+    if (destroyed) return;
+    update(dt || 1 / 60);
+    render();
   }
 };
 
 function isKeyDown(key) {
-  return marioHooks.keys ? !!marioHooks.keys[key] : input.isDown(key);
+  if (!marioHooks.keys) return input.isDown(key);
+  // player.js only initialises moveAcc inside noRun(). With the keyboard, RUN is never down on a fresh Mario's
+  // first frame, but an external controller can press RUN immediately, which leaves velocity NaN. Report RUN as
+  // up until noRun() has run once, exactly what the keyboard path would have done.
+  if (key === 'RUN' && player.moveAcc === undefined) return false;
+  return !!marioHooks.keys[key];
 }
 
 //set up the game loop

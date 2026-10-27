@@ -3,7 +3,7 @@
  * (public/game/mario/js/game.js, `__marioHooks.snapshot()`); nothing here is simulated.
  * Units: pixels in game coordinates (one tile = 16 px).
  *
- * Input schema v1 (order is fixed, see INPUT_SCHEMA):
+ * Input schema v2 (order is fixed, see INPUT_SCHEMA):
  *  0 obstacle  distance to the nearest solid tile ahead at Mario's body height, within LOOKAHEAD_PX.
  *              Encoded 1 - d/LOOKAHEAD_PX (1 = touching, 0 = nothing within range).
  *  1 pit       distance to the nearest missing floor column ahead (a gap), same encoding.
@@ -19,7 +19,8 @@ export const LOOKAHEAD_PX = 96;
 export const MAX_VX = 2.5;
 export const TILE = 16;
 export const FLOOR_ROW = 13;
-export const INPUT_SCHEMA_VERSION = 1;
+/** v2: warp pipes (level.pipes) now count as solid obstacles; v1 could not see them. */
+export const INPUT_SCHEMA_VERSION = 2;
 
 export const INPUT_SCHEMA = [
   { key: "obstacle", label: "Obstacle ahead", unit: "1 − dist/96px" },

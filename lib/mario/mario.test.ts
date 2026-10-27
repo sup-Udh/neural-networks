@@ -75,7 +75,7 @@ describe("key driver (jump edges)", () => {
 });
 
 function fakeHooks(s: GameSnapshot): MarioHooks {
-  return { paused: false, keys: null, beforeUpdate: null, frame: s.frame, snapshot: () => s, reset: () => undefined };
+  return { paused: false, keys: null, beforeUpdate: null, frame: s.frame, snapshot: () => s, reset: () => undefined, step: () => undefined };
 }
 
 describe("controller ownership and lifecycle", () => {

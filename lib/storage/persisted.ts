@@ -8,12 +8,15 @@ export interface PersistedStore<T> {
   set: (next: T) => void;
   subscribe: (listener: () => void) => () => void;
   getServer: () => T;
+  /** Message from the most recent failed write (e.g. quota exceeded), or null if the last write succeeded. */
+  getWriteError: () => string | null;
 }
 
 export function createPersistedStore<T>(key: string, version: number, fallback: T, parse: (data: unknown) => T | null): PersistedStore<T> {
   let cache = fallback;
   let loaded = false;
   const listeners = new Set<() => void>();
+  let writeError: string | null = null;
 
   const load = () => {
     loaded = true;
@@ -39,8 +42,10 @@ export function createPersistedStore<T>(key: string, version: number, fallback: 
       loaded = true;
       try {
         window.localStorage.setItem(key, JSON.stringify({ version, data: next }));
-      } catch {
-        // Private mode or a full quota: the value still lives in memory for this session.
+        writeError = null;
+      } catch (error) {
+        // Private mode or a full quota: the value still lives in memory for this session, but is NOT saved.
+        writeError = error instanceof Error ? error.message : String(error);
       }
       listeners.forEach((listener) => listener());
     },
@@ -58,5 +63,6 @@ export function createPersistedStore<T>(key: string, version: number, fallback: 
       };
     },
     getServer: () => fallback,
+    getWriteError: () => writeError,
   };
 }

@@ -1,10 +1,11 @@
 import { forward } from "../nn/network";
 import type { ForwardResult, NetworkModel } from "../nn/network";
-import { KeyDriver, selectAction } from "./actions";
+import { KeyDriver } from "./actions";
 import type { KeyState, MarioAction } from "./actions";
 import { EpisodeTracker } from "./episode";
 import type { EpisodeMetrics } from "./episode";
 import { encodeObservation } from "./observation";
+import { networkStep } from "./policyStep";
 import type { GameSnapshot, Observation } from "./observation";
 
 /** The adapter exposed by public/game/mario/js/game.js as window.__marioHooks. */
@@ -15,6 +16,8 @@ export interface MarioHooks {
   frame: number;
   snapshot: () => GameSnapshot;
   reset: () => void;
+  /** Advances exactly one frame (fixed dt). Only valid when the animation loop is not running (headless). */
+  step: (dt?: number) => void;
 }
 
 export type ControlMode = "human" | "network" | "policy";
@@ -107,34 +110,33 @@ export class MarioController {
 
     let decision: Decision;
     const { model, revision } = this.opts.getModel();
-    if (!observation.available) {
+    if (this.mode === "network") {
+      const r = networkStep(model, snapshot, this.driver);
+      hooks.keys = r.keys;
+      if (r.action) this.lastAction = r.action;
+      decision = { frame: snapshot.frame, source: "network", modelRevision: revision, observation: r.observation, trace: r.trace, action: r.action, explanation: r.explanation };
+    } else if (!observation.available) {
       this.driver.reset();
       hooks.keys = {};
-      decision = { frame: snapshot.frame, source: this.mode, modelRevision: revision, observation, trace: null, action: null, explanation: `No decision: ${observation.reason}.` };
+      decision = { frame: snapshot.frame, source: "policy", modelRevision: revision, observation, trace: null, action: null, explanation: `No decision: ${observation.reason}.` };
     } else {
       let trace: ForwardResult | null = null;
-      let action: MarioAction | null = null;
+      let action: MarioAction;
       let explanation: string;
       try {
         trace = forward(model, observation.inputs);
-        if (this.mode === "network") {
-          const sel = selectAction(trace.output);
-          action = sel.action;
-          explanation = sel.reason;
+        const policy = this.opts.getPolicy?.() ?? null;
+        if (!policy) {
+          action = "wait";
+          explanation = "No policy is active, so the controller waited.";
         } else {
-          const policy = this.opts.getPolicy?.() ?? null;
-          if (!policy) {
-            action = "wait";
-            explanation = "No policy is active, so the controller waited.";
-          } else {
-            const answer = policy.decide({ observation, scores: trace.output });
-            action = answer.action ?? "wait";
-            explanation = answer.error
-              ? `Policy error: ${answer.error}. Waiting.`
-              : answer.action
-                ? `Your policy code returned "${answer.action}".`
-                : "The policy has not answered yet, so the controller waited.";
-          }
+          const answer = policy.decide({ observation, scores: trace.output });
+          action = answer.action ?? "wait";
+          explanation = answer.error
+            ? `Policy error: ${answer.error}. Waiting.`
+            : answer.action
+              ? `Your policy code returned "${answer.action}".`
+              : "The policy has not answered yet, so the controller waited.";
         }
       } catch (error) {
         action = "wait";
@@ -142,7 +144,7 @@ export class MarioController {
       }
       this.lastAction = action;
       hooks.keys = this.driver.next(action, observation.raw.isGrounded);
-      decision = { frame: snapshot.frame, source: this.mode, modelRevision: revision, observation, trace, action, explanation };
+      decision = { frame: snapshot.frame, source: "policy", modelRevision: revision, observation, trace, action, explanation };
     }
 
     this.report(snapshot.frame, decision, metrics);

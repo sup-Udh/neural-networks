@@ -316,3 +316,51 @@
     transition: none !important;
   }
 }
+
+.ml-train {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ml-config {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  font-size: 12.5px;
+}
+
+.ml-config label,
+.ml-wide {
+  display: grid;
+  gap: 3px;
+  color: var(--color-text-secondary);
+}
+
+.ml-config .ml-wide {
+  grid-column: 1 / -1;
+}
+
+.ml-wide select {
+  width: 100%;
+}
+
+.ml-config input {
+  width: 100%;
+}
+
+.ml-gen {
+  display: grid;
+  gap: 8px;
+}
+
+.ml-chart g.is-interactive {
+  cursor: pointer;
+}
+
+.ml details {
+  font-size: 12.5px;
+}

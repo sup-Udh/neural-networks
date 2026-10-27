@@ -4,6 +4,7 @@ import type { ActivationName, NetworkModel } from "../nn/network";
 import type { EpisodeMetrics } from "./episode";
 import { INPUT_SCHEMA_VERSION } from "./observation";
 import { STARTER_POLICY_CODE, starterModel } from "./starter";
+import type { TrainingSession } from "./trainer";
 
 /*
  * The single canonical workspace: one active model, the code, saved snapshots and run records.
@@ -43,7 +44,13 @@ export interface Workspace {
   codeVersion: number;
   snapshots: Snapshot[];
   runs: RunRecord[];
+  /** Completed, cancelled and failed training sessions (newest first). */
+  trainings: TrainingSession[];
+  /** Problems found while loading saved data (records that could not be read). Cleared by dismissNotices. */
+  notices: string[];
 }
+
+export const MAX_TRAININGS = 5;
 
 const MAX_RUNS = 40;
 
@@ -56,6 +63,8 @@ export const initialWorkspace = (): Workspace => ({
   codeVersion: 1,
   snapshots: [],
   runs: [],
+  trainings: [],
+  notices: [],
 });
 
 let idCounter = 0;
@@ -79,6 +88,11 @@ export function saveSnapshot(w: Workspace, name: string): Workspace {
   const trimmed = name.trim() || `Snapshot ${w.snapshots.length + 1}`;
   const snap: Snapshot = { id: newId("snap"), name: trimmed, createdAt: Date.now(), model: cloneModel(w.model), policyCode: w.activeCode };
   return { ...w, snapshots: [...w.snapshots, snap], basedOn: trimmed };
+}
+/** Saves an arbitrary model (e.g. a trained candidate) as a snapshot without changing the active model. */
+export function addSnapshot(w: Workspace, name: string, model: NetworkModel): Workspace {
+  const snap: Snapshot = { id: newId("snap"), name: name.trim() || `Snapshot ${w.snapshots.length + 1}`, createdAt: Date.now(), model: cloneModel(model), policyCode: w.activeCode };
+  return { ...w, snapshots: [...w.snapshots, snap] };
 }
 export function restoreSnapshot(w: Workspace, id: string): Workspace {
   const snap = w.snapshots.find((s) => s.id === id);
@@ -112,6 +126,21 @@ export function recordRun(w: Workspace, mode: RunRecord["mode"], metrics: Episod
   return { ...w, runs: [run, ...w.runs].slice(0, MAX_RUNS) };
 }
 
+/** Replaces the active model with a trained candidate. The previous model is kept only if the caller saved it. */
+export function promoteModel(w: Workspace, model: NetworkModel, label: string): Workspace {
+  return { ...w, model: cloneModel(model), revision: w.revision + 1, basedOn: label };
+}
+export function recordTraining(w: Workspace, session: TrainingSession): Workspace {
+  const rest = w.trainings.filter((t) => t.id !== session.id);
+  return { ...w, trainings: [structuredClone(session), ...rest].slice(0, MAX_TRAININGS) };
+}
+export function deleteTraining(w: Workspace, id: string): Workspace {
+  return { ...w, trainings: w.trainings.filter((t) => t.id !== id) };
+}
+export function dismissNotices(w: Workspace): Workspace {
+  return { ...w, notices: [] };
+}
+
 export interface ParamDiff {
   where: string;
   a: number | string;
@@ -139,18 +168,46 @@ export function diffModels(a: NetworkModel, b: NetworkModel): ParamDiff[] {
   return out;
 }
 
+function parseBest(b: unknown): TrainingSession["globalBest"] {
+  if (!b || typeof b !== "object") return null;
+  const r = b as NonNullable<TrainingSession["globalBest"]>;
+  const m = parseModel(r.model);
+  return m && typeof r.fitness === "number" && typeof r.candidateId === "string" ? { ...r, model: m } : null;
+}
+
+function parseTraining(t: unknown): TrainingSession | null {
+  if (!t || typeof t !== "object") return null;
+  const r = t as TrainingSession;
+  const start = parseModel(r.startModel);
+  if (!start || typeof r.id !== "string" || !r.config || !Array.isArray(r.generations)) return null;
+  const generations = r.generations.map((g) => (g && typeof g === "object" ? { ...g, best: parseBest(g.best) } : null));
+  if (generations.some((g) => !g)) return null;
+  return { ...r, startModel: start, generations: generations as TrainingSession["generations"], globalBest: parseBest(r.globalBest) };
+}
+
 function parseWorkspace(data: unknown): Workspace | null {
   if (!data || typeof data !== "object") return null;
   const d = data as Partial<Workspace>;
   const model = parseModel(d.model);
   if (!model || typeof d.draftCode !== "string" || typeof d.activeCode !== "string") return null;
+  const notices: string[] = [];
   const snapshots = (Array.isArray(d.snapshots) ? d.snapshots : []).flatMap((s): Snapshot[] => {
     const m = parseModel(s?.model);
-    return m && typeof s.id === "string" && typeof s.name === "string" ? [{ id: s.id, name: s.name, createdAt: Number(s.createdAt) || 0, model: m, policyCode: String(s.policyCode ?? "") }] : [];
+    if (m && typeof s.id === "string" && typeof s.name === "string") return [{ id: s.id, name: s.name, createdAt: Number(s.createdAt) || 0, model: m, policyCode: String(s.policyCode ?? "") }];
+    notices.push(`A saved snapshot${typeof s?.name === "string" ? ` (“${s.name}”)` : ""} could not be read and was skipped.`);
+    return [];
   });
   const runs = (Array.isArray(d.runs) ? d.runs : []).flatMap((r): RunRecord[] => {
     const m = parseModel(r?.model);
-    return m && r.metrics && typeof r.id === "string" ? [{ ...r, model: m }] : [];
+    if (m && r.metrics && typeof r.id === "string") return [{ ...r, model: m }];
+    notices.push("A saved run record could not be read and was skipped.");
+    return [];
+  });
+  const trainings = (Array.isArray(d.trainings) ? d.trainings : []).flatMap((t): TrainingSession[] => {
+    const parsed = parseTraining(t);
+    if (parsed) return [parsed];
+    notices.push("A saved training session is incompatible or damaged and was skipped.");
+    return [];
   });
   return {
     model,
@@ -161,6 +218,8 @@ function parseWorkspace(data: unknown): Workspace | null {
     codeVersion: Number(d.codeVersion) || 1,
     snapshots,
     runs,
+    trainings,
+    notices: [...(Array.isArray(d.notices) ? d.notices.filter((n): n is string => typeof n === "string") : []), ...notices],
   };
 }
 

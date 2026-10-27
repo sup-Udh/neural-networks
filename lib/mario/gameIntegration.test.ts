@@ -119,11 +119,23 @@ describe("controller against the real game scripts", () => {
     expect(hooks.snapshot().player.x).toBe(x);
     hooks.paused = false;
     hooks.reset();
-    console.log('after reset', hooks.snapshot().player.x, hooks.snapshot().viewportX);
     step(1);
-    console.log('after step', JSON.stringify(hooks.snapshot().player), hooks.keys);
     expect(hooks.snapshot().player.x).toBeLessThan(x);
     expect(hooks.snapshot().frame).toBe(1);
+  });
+
+  it("never produces NaN velocity, including right after reset", async () => {
+    const { hooks, step } = await boot();
+    const c = new MarioController({ hooks, getModel: () => ({ model: starterModel(), revision: 1 }) });
+    c.attach();
+    c.setMode("network");
+    for (let i = 0; i < 3; i++) {
+      hooks.reset();
+      for (let f = 0; f < 150; f++) {
+        step(1);
+        expect(Number.isFinite(hooks.snapshot().player.vx)).toBe(true);
+      }
+    }
   });
 
   it("is deterministic: the same model produces the same trajectory", async () => {
