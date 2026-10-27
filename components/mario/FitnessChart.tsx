@@ -10,7 +10,7 @@ interface Props {
 
 const W = 520;
 const H = 190;
-const PAD = { l: 44, r: 12, t: 12, b: 26 };
+const PAD = { l: 44, r: 12, t: 26, b: 26 };
 
 /** Raw per-generation best and average fitness (no smoothing), plus the completion rate of each generation. */
 export default function FitnessChart({ generations, selected, onSelect }: Props) {

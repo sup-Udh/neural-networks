@@ -72,7 +72,7 @@ export default function TrainingPanel({ ws, onPromote, onSaveSnapshot, onDeleteT
   const gi = genIndex !== null && genIndex < gens.length ? genIndex : gens.length - 1;
   const gen = gi >= 0 ? gens[gi] : null;
   const last = gens.at(-1) ?? null;
-  const elapsed = shown ? (shown.finishedAt ?? now) - shown.createdAt : 0;
+  const elapsed = shown ? Math.max(0, (shown.finishedAt ?? now) - shown.createdAt) : 0;
   const bestName = (g: { candidateId: string; generation: number }) => `${shown?.id.slice(-6)}·${g.candidateId}`;
 
   return (
@@ -131,7 +131,7 @@ export default function TrainingPanel({ ws, onPromote, onSaveSnapshot, onDeleteT
 
           <dl className="ml-metrics">
             <div><dt>State</dt><dd>{shown.state}</dd></div>
-            <div><dt>Generation</dt><dd>{Math.min(shown.currentGeneration + (shown.state === "evaluating" ? 1 : 0), shown.config.generations)} / {shown.config.generations}</dd></div>
+            <div><dt>Generation</dt><dd>{shown.state === "evaluating" || shown.state === "evolving" ? Math.min(shown.currentGeneration + 1, shown.config.generations) : shown.generations.length} / {shown.config.generations}</dd></div>
             <div><dt>Candidate</dt><dd>{shown.state === "evaluating" ? `${shown.currentCandidate + 1} / ${shown.config.populationSize}` : "–"}</dd></div>
             <div><dt>Evaluated</dt><dd>{shown.candidatesEvaluated} ok · {shown.failures} failed</dd></div>
             <div><dt>Best fitness (all-time)</dt><dd>{shown.globalBest ? Math.round(shown.globalBest.fitness) : "–"}</dd></div>
