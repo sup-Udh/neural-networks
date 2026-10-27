@@ -1,5 +1,6 @@
 import { cloneModel } from "../nn/network";
 import type { NetworkModel } from "../nn/network";
+import { FITNESS_VERSION, PROTOCOL_VERSION } from "./evaluation";
 import type { Evaluator, EvaluationResult, Termination } from "./evaluation";
 import { initPopulation, makeRng, nextPopulation, rankCandidates, validateTrainingConfig } from "./evolution";
 import type { EvaluatedCandidate, Origin, TrainingConfig } from "./evolution";
@@ -24,9 +25,23 @@ export interface CandidateSummary {
   error: string | null;
 }
 
+/** Measured outcome of one development episode. */
+export interface CandidateOutcome {
+  fitness: number;
+  termination: Termination;
+  distance: number;
+  progress: number;
+  frames: number;
+}
+
+/** Bump when the stored session shape changes. Sessions saved before versioning have no schemaVersion (treated as 1). */
+export const SESSION_SCHEMA_VERSION = 2;
+
 export interface BestRecord {
   candidateId: string;
   generation: number;
+  /** "start" = the unmodified start model, "elite" = copied unchanged, "mutant" = mutated copy. May be absent in sessions saved before provenance tracking. */
+  origin?: Origin;
   parentId: string | null;
   fitness: number;
   termination: Termination;
@@ -51,6 +66,12 @@ export interface GenerationSummary {
 }
 
 export interface TrainingSession {
+  /** Absent on sessions saved before schema versioning (those lack baseline/provenance fields and use fitness v1). */
+  schemaVersion?: number;
+  fitnessVersion?: number;
+  protocolVersion?: number;
+  /** Development outcome of the unmodified start model under the same protocol as every candidate (null until measured). */
+  baseline?: CandidateOutcome | null;
   id: string;
   createdAt: number;
   finishedAt: number | null;
@@ -72,7 +93,7 @@ const emptyTerminations = (): Record<Termination, number> => ({ completed: 0, de
 
 function toBest(c: EvaluatedCandidate, r: EvaluationResult): BestRecord {
   return {
-    candidateId: c.id, generation: c.generation, parentId: c.parentId, fitness: r.fitness, termination: r.termination,
+    candidateId: c.id, generation: c.generation, origin: c.origin, parentId: c.parentId, fitness: r.fitness, termination: r.termination,
     distance: r.metrics.distance, progress: r.metrics.progress, frames: r.metrics.frames, model: cloneModel(c.model),
   };
 }
@@ -112,6 +133,7 @@ export class Trainer {
     private now: () => number = Date.now,
   ) {
     this.session = {
+      schemaVersion: SESSION_SCHEMA_VERSION, fitnessVersion: FITNESS_VERSION, protocolVersion: PROTOCOL_VERSION, baseline: null,
       id: `train-${this.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
       createdAt: this.now(), finishedAt: null, state: "idle", config: structuredClone(config), startLabel,
       startModel: cloneModel(startModel), generations: [], globalBest: null, currentGeneration: 0, currentCandidate: 0,
@@ -167,7 +189,13 @@ export class Trainer {
         const summary = summarizeGeneration(g, ranked);
         let globalBest = this.session.globalBest;
         if (summary.best && (!globalBest || summary.best.fitness > globalBest.fitness)) globalBest = { ...summary.best, model: cloneModel(summary.best.model) };
-        this.set({ state: "evolving", generations: [...this.session.generations, summary], globalBest });
+        let baseline = this.session.baseline ?? null;
+        if (g === 0) {
+          // Candidate g0-c0 is the unmodified start model, so this is the baseline under the identical protocol.
+          const c0 = evaluated.find((c) => c.id === "g0-c0")?.result;
+          if (c0) baseline = { fitness: c0.fitness, termination: c0.termination, distance: c0.metrics.distance, progress: c0.metrics.progress, frames: c0.metrics.frames };
+        }
+        this.set({ state: "evolving", generations: [...this.session.generations, summary], globalBest, baseline });
         if (!summary.best) throw new Error(`Generation ${g + 1}: every candidate failed to evaluate (${ranked[0]?.error ?? "unknown error"}).`);
         if (g < cfg.generations - 1) population = nextPopulation(ranked, g + 1, cfg, rng);
       }

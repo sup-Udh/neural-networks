@@ -1,18 +1,18 @@
 import type { NetworkModel } from "../../nn/network";
-import type { EvaluationConfig, EvaluationResult, Evaluator } from "../evaluation";
-import { HeadlessEvaluator } from "../evaluation";
+import type { EvaluationConfig, EvaluationResult, Evaluator, SceneCapture, SceneProber } from "../evaluation";
+import { HeadlessEvaluator, captureSceneSync } from "../evaluation";
 import type { MarioHooks } from "../controller";
 import { LEGACY_SCRIPTS, SCRIPT_BASE } from "../gameScripts";
 import { parseFromWorker } from "./protocol";
 import type { ToWorker } from "./protocol";
 
-type Pending = { resolve: (r: EvaluationResult) => void; reject: (e: Error) => void };
+type Pending = { resolve: (r: never) => void; reject: (e: Error) => void };
 
 /**
  * Evaluator backed by a dedicated Web Worker holding its own copy of the game. `dispose()` terminates the worker
  * and rejects anything in flight, so stopping training never leaves a simulation running in the background.
  */
-export class WorkerEvaluator implements Evaluator {
+export class WorkerEvaluator implements Evaluator, SceneProber {
   private worker: Worker | null;
   private pending = new Map<number, Pending>();
   private nextId = 1;
@@ -39,7 +39,7 @@ export class WorkerEvaluator implements Evaluator {
         } else {
           const p = this.pending.get(m.id);
           this.pending.delete(m.id);
-          p?.resolve(m.result);
+          (p?.resolve as ((v: unknown) => void) | undefined)?.(m.type === "scene" ? m.scene : m.result);
         }
       };
       worker.onerror = (e) => {
@@ -68,6 +68,16 @@ export class WorkerEvaluator implements Evaluator {
     });
   }
 
+  async captureScene(model: NetworkModel, config: EvaluationConfig, targetX: number): Promise<SceneCapture | null> {
+    await this.ready;
+    if (this.disposed || !this.worker) throw new Error("The evaluator has been stopped.");
+    const id = this.nextId++;
+    return new Promise<SceneCapture | null>((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.worker!.postMessage({ type: "scene", id, model, config, targetX } satisfies ToWorker);
+    });
+  }
+
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
@@ -78,7 +88,7 @@ export class WorkerEvaluator implements Evaluator {
 }
 
 /** Same interface, no worker: evaluates against hooks in this thread (used by tests and tools). */
-export class InProcessEvaluator implements Evaluator {
+export class InProcessEvaluator implements Evaluator, SceneProber {
   private core: HeadlessEvaluator;
   disposed = false;
   constructor(hooks: MarioHooks) {
@@ -87,6 +97,9 @@ export class InProcessEvaluator implements Evaluator {
   async evaluate(model: NetworkModel, config: EvaluationConfig, episodeId: string) {
     if (this.disposed) throw new Error("The evaluator has been stopped.");
     return this.core.evaluateSync(model, config, episodeId);
+  }
+  async captureScene(model: NetworkModel, config: EvaluationConfig, targetX: number) {
+    return captureSceneSync(this.core, model, config, targetX);
   }
   dispose() {
     this.disposed = true;

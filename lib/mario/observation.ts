@@ -54,6 +54,8 @@ export interface GameSnapshot {
   };
   enemies: { type: string; x: number; y: number; vx: number; dying: boolean }[];
   isSolid: (col: number, row: number) => boolean;
+  /** Tiles only (no warp pipes): what the pipe-blind v1 encoding saw. Optional for older fixtures. */
+  isSolidTile?: (col: number, row: number) => boolean;
 }
 
 export interface RawObservation {

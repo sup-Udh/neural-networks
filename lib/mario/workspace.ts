@@ -5,6 +5,7 @@ import type { EpisodeMetrics } from "./episode";
 import { INPUT_SCHEMA_VERSION } from "./observation";
 import { STARTER_POLICY_CODE, starterModel } from "./starter";
 import type { TrainingSession } from "./trainer";
+import type { EvaluationRecord } from "./validation";
 
 /*
  * The single canonical workspace: one active model, the code, saved snapshots and run records.
@@ -12,12 +13,29 @@ import type { TrainingSession } from "./trainer";
  * snapshots can never be corrupted by later edits (snapshots hold deep copies).
  */
 
+export type ModelOrigin = "starter" | "manual-edit" | "evolved" | "unknown";
+
+export interface Provenance {
+  sessionId: string;
+  candidateId: string;
+  generation: number;
+}
+
 export interface Snapshot {
   id: string;
   name: string;
   createdAt: number;
   model: NetworkModel;
   policyCode: string;
+  /** Absent on snapshots saved before origin tracking; shown as "unknown", never guessed. */
+  origin?: ModelOrigin;
+  provenance?: Provenance | null;
+}
+
+export interface ChallengeProgress {
+  completedAt: number;
+  /** What the user actually did, e.g. "predicted jump, observed run". */
+  detail: string;
 }
 
 export interface RunRecord {
@@ -46,11 +64,16 @@ export interface Workspace {
   runs: RunRecord[];
   /** Completed, cancelled and failed training sessions (newest first). */
   trainings: TrainingSession[];
+  /** Measured evaluations (development/validation/matched), newest first, keyed to models by content hash. */
+  evaluations: EvaluationRecord[];
+  /** Guided challenges the user has genuinely completed. */
+  challenges: Record<string, ChallengeProgress>;
   /** Problems found while loading saved data (records that could not be read). Cleared by dismissNotices. */
   notices: string[];
 }
 
 export const MAX_TRAININGS = 5;
+export const MAX_EVALUATIONS = 60;
 
 const MAX_RUNS = 40;
 
@@ -64,6 +87,8 @@ export const initialWorkspace = (): Workspace => ({
   snapshots: [],
   runs: [],
   trainings: [],
+  evaluations: [],
+  challenges: {},
   notices: [],
 });
 
@@ -86,12 +111,14 @@ export function resetModel(w: Workspace): Workspace {
 }
 export function saveSnapshot(w: Workspace, name: string): Workspace {
   const trimmed = name.trim() || `Snapshot ${w.snapshots.length + 1}`;
-  const snap: Snapshot = { id: newId("snap"), name: trimmed, createdAt: Date.now(), model: cloneModel(w.model), policyCode: w.activeCode };
+  const inherited = w.snapshots.find((x) => x.name === w.basedOn)?.origin;
+  const origin: ModelOrigin = w.basedOn === null ? "manual-edit" : w.basedOn === "Starter" ? "starter" : w.basedOn.startsWith("Trained") ? "evolved" : (inherited ?? "unknown");
+  const snap: Snapshot = { id: newId("snap"), name: trimmed, createdAt: Date.now(), model: cloneModel(w.model), policyCode: w.activeCode, origin, provenance: null };
   return { ...w, snapshots: [...w.snapshots, snap], basedOn: trimmed };
 }
 /** Saves an arbitrary model (e.g. a trained candidate) as a snapshot without changing the active model. */
-export function addSnapshot(w: Workspace, name: string, model: NetworkModel): Workspace {
-  const snap: Snapshot = { id: newId("snap"), name: name.trim() || `Snapshot ${w.snapshots.length + 1}`, createdAt: Date.now(), model: cloneModel(model), policyCode: w.activeCode };
+export function addSnapshot(w: Workspace, name: string, model: NetworkModel, origin: ModelOrigin = "unknown", provenance: Provenance | null = null): Workspace {
+  const snap: Snapshot = { id: newId("snap"), name: name.trim() || `Snapshot ${w.snapshots.length + 1}`, createdAt: Date.now(), model: cloneModel(model), policyCode: w.activeCode, origin, provenance };
   return { ...w, snapshots: [...w.snapshots, snap] };
 }
 export function restoreSnapshot(w: Workspace, id: string): Workspace {
@@ -136,6 +163,13 @@ export function recordTraining(w: Workspace, session: TrainingSession): Workspac
 }
 export function deleteTraining(w: Workspace, id: string): Workspace {
   return { ...w, trainings: w.trainings.filter((t) => t.id !== id) };
+}
+export function recordEvaluations(w: Workspace, records: EvaluationRecord[]): Workspace {
+  return { ...w, evaluations: [...records, ...w.evaluations].slice(0, MAX_EVALUATIONS) };
+}
+export function completeChallenge(w: Workspace, id: string, detail: string): Workspace {
+  if (w.challenges[id]) return w;
+  return { ...w, challenges: { ...w.challenges, [id]: { completedAt: Date.now(), detail } } };
 }
 export function dismissNotices(w: Workspace): Workspace {
   return { ...w, notices: [] };
@@ -193,7 +227,7 @@ function parseWorkspace(data: unknown): Workspace | null {
   const notices: string[] = [];
   const snapshots = (Array.isArray(d.snapshots) ? d.snapshots : []).flatMap((s): Snapshot[] => {
     const m = parseModel(s?.model);
-    if (m && typeof s.id === "string" && typeof s.name === "string") return [{ id: s.id, name: s.name, createdAt: Number(s.createdAt) || 0, model: m, policyCode: String(s.policyCode ?? "") }];
+    if (m && typeof s.id === "string" && typeof s.name === "string") return [{ id: s.id, name: s.name, createdAt: Number(s.createdAt) || 0, model: m, policyCode: String(s.policyCode ?? ""), origin: s.origin, provenance: s.provenance ?? null }];
     notices.push(`A saved snapshot${typeof s?.name === "string" ? ` (“${s.name}”)` : ""} could not be read and was skipped.`);
     return [];
   });
@@ -209,6 +243,18 @@ function parseWorkspace(data: unknown): Workspace | null {
     notices.push("A saved training session is incompatible or damaged and was skipped.");
     return [];
   });
+  const evaluations = (Array.isArray(d.evaluations) ? d.evaluations : []).flatMap((e): EvaluationRecord[] => {
+    if (e && typeof e.id === "string" && typeof e.modelHash === "string" && Array.isArray(e.episodes) && e.summary && typeof e.summary === "object") return [e];
+    notices.push("A saved evaluation record could not be read and was skipped.");
+    return [];
+  });
+  const challenges: Record<string, ChallengeProgress> = {};
+  if (d.challenges && typeof d.challenges === "object") {
+    for (const [k, v] of Object.entries(d.challenges)) {
+      if (v && typeof v.completedAt === "number" && typeof v.detail === "string") challenges[k] = v;
+      else notices.push(`Saved progress for challenge “${k}” could not be read and was skipped.`);
+    }
+  }
   return {
     model,
     revision: Number(d.revision) || 1,
@@ -219,6 +265,8 @@ function parseWorkspace(data: unknown): Workspace | null {
     snapshots,
     runs,
     trainings,
+    evaluations,
+    challenges,
     notices: [...(Array.isArray(d.notices) ? d.notices.filter((n): n is string => typeof n === "string") : []), ...notices],
   };
 }

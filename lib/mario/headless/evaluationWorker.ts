@@ -3,7 +3,7 @@
  * Web Worker that owns a private copy of the REAL Mario scripts (evaluated in this worker's own global scope, so it
  * shares nothing with the visible game on the page) and runs evaluation episodes on request.
  */
-import { HeadlessEvaluator } from "../evaluation";
+import { HeadlessEvaluator, captureSceneSync } from "../evaluation";
 import { bootHeadlessGame } from "./environment";
 import type { FromWorker, ToWorker } from "./protocol";
 
@@ -31,8 +31,11 @@ scope.onmessage = async (event: MessageEvent<ToWorker>) => {
     } else if (msg.type === "evaluate") {
       if (!evaluator) throw new Error("The evaluator is not ready yet.");
       send({ type: "result", id: msg.id, result: evaluator.evaluateSync(msg.model, msg.config, msg.episodeId) });
+    } else if (msg.type === "scene") {
+      if (!evaluator) throw new Error("The evaluator is not ready yet.");
+      send({ type: "scene", id: msg.id, scene: captureSceneSync(evaluator, msg.model, msg.config, msg.targetX) });
     }
   } catch (error) {
-    send({ type: "error", id: msg.type === "evaluate" ? msg.id : null, message: error instanceof Error ? error.message : String(error) });
+    send({ type: "error", id: msg.type === "evaluate" || msg.type === "scene" ? msg.id : null, message: error instanceof Error ? error.message : String(error) });
   }
 };

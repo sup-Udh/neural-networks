@@ -4,6 +4,7 @@ import { WorkerEvaluator } from "./headless/workerEvaluator";
 import type { Evaluator } from "./evaluation";
 import { Trainer } from "./trainer";
 import type { TrainingSession } from "./trainer";
+import { evaluationStore } from "./evaluationStore";
 import { recordTraining, workspaceStore } from "./workspace";
 
 /*
@@ -39,7 +40,7 @@ export const trainingStore = {
   },
   isRunning: () => trainer !== null,
 
-  start(config: TrainingConfig, startModel: NetworkModel, label: string, makeEvaluator: () => Evaluator = () => new WorkerEvaluator()) {
+  start(config: TrainingConfig, startModel: NetworkModel, label: string, makeEvaluator: () => Evaluator = () => new WorkerEvaluator(), afterTraining = true) {
     if (trainer) return;
     let ev: Evaluator;
     try {
@@ -64,14 +65,25 @@ export const trainingStore = {
     });
     trainer = t;
     set({ session: t.getSession(), startError: null });
-    void t.run().then((session) => {
+    void t.run().then(async (session) => {
       // Keep whatever was measured, including cancelled or failed runs, as long as at least one generation finished.
       if (session.generations.length > 0) workspaceStore.set(recordTraining(workspaceStore.get(), session));
-    }).finally(() => {
+      // Release the training worker before anything else runs.
       ev.dispose();
       if (evaluator === ev) evaluator = null;
       if (trainer === t) trainer = null;
       notify();
+      // After training (never during it): measure the baseline and the best model under one matched protocol that
+      // includes held-out start timings. Evolution never sees these results, so they cannot influence selection.
+      if (!afterTraining || session.generations.length === 0 || !session.globalBest || evaluationStore.get().running) return;
+      const best = session.globalBest;
+      await evaluationStore.run(
+        [
+          { label: `Baseline: ${session.startLabel}`, model: session.startModel, role: "matched", context: session.id },
+          { label: `Best: ${best.candidateId}`, model: best.model, role: "matched", context: session.id },
+        ],
+        session.config.eval,
+      );
     });
   },
 

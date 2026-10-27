@@ -1,14 +1,16 @@
-import type { EvaluationConfig, EvaluationResult } from "../evaluation";
+import type { EvaluationConfig, EvaluationResult, SceneCapture } from "../evaluation";
 import type { NetworkModel } from "../../nn/network";
 import { TERMINATIONS } from "../evaluation";
 
 export type ToWorker =
   | { type: "init"; scriptBase: string; scripts: string[] }
-  | { type: "evaluate"; id: number; episodeId: string; model: NetworkModel; config: EvaluationConfig };
+  | { type: "evaluate"; id: number; episodeId: string; model: NetworkModel; config: EvaluationConfig }
+  | { type: "scene"; id: number; model: NetworkModel; config: EvaluationConfig; targetX: number };
 
 export type FromWorker =
   | { type: "ready" }
   | { type: "result"; id: number; result: EvaluationResult }
+  | { type: "scene"; id: number; scene: SceneCapture | null }
   | { type: "error"; id: number | null; message: string };
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -18,6 +20,12 @@ export function parseFromWorker(data: unknown): FromWorker | null {
   if (!isObj(data)) return null;
   if (data.type === "ready") return { type: "ready" };
   if (data.type === "error" && typeof data.message === "string") return { type: "error", id: typeof data.id === "number" ? data.id : null, message: data.message };
+  if (data.type === "scene" && typeof data.id === "number") {
+    const sc = data.scene;
+    if (sc === null) return { type: "scene", id: data.id, scene: null };
+    const ok = isObj(sc) && typeof sc.x === "number" && isObj(sc.current) && isObj(sc.pipeBlind) && Array.isArray(sc.current.inputs) && Array.isArray(sc.pipeBlind.outputs);
+    return ok ? { type: "scene", id: data.id, scene: sc as unknown as SceneCapture } : null;
+  }
   if (data.type === "result" && typeof data.id === "number" && isObj(data.result)) {
     const r = data.result;
     const m = r.metrics;

@@ -28,7 +28,7 @@ class FixtureEvaluator implements Evaluator {
     if (this.failOn(n)) throw new Error("simulated worker failure");
     const distance = paramSum(model);
     const { fitness, breakdown } = computeFitness(distance, "budget", config.fitness);
-    return { episodeId, termination: "budget", reason: "fixture", metrics: { status: "running", frames: 1, startX: 0, maxX: distance, distance, progress: 0, jumps: 0, coins: 0 }, fitness, breakdown, config };
+    return { episodeId, termination: "budget", reason: "fixture", metrics: { status: "running", frames: 1, startX: 0, maxX: distance, distance, progress: 0, jumps: 0, coins: 0 }, fitness, breakdown, config, fitnessVersion: 2, protocolVersion: 2 };
   }
   dispose() {
     this.disposed = true;

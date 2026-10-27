@@ -28,7 +28,7 @@ class FakeWorker {
 }
 const asWorker = (w: FakeWorker) => () => w as unknown as Worker;
 const goodResult = (id: string): EvaluationResult => ({
-  episodeId: id, termination: "dead", reason: "x", fitness: 12, breakdown: { progress: 12, completionBonus: 0, deathPenalty: 0 }, config: DEFAULT_EVAL_CONFIG,
+  episodeId: id, termination: "dead", reason: "x", fitness: 12, breakdown: { progress: 12, completionBonus: 0, deathPenalty: 0, timeBonus: 0 }, config: DEFAULT_EVAL_CONFIG, fitnessVersion: 2, protocolVersion: 2,
   metrics: { status: "dead", frames: 10, startX: 56, maxX: 68, distance: 12, progress: 0, jumps: 0, coins: 0 },
 });
 

@@ -137,6 +137,11 @@ var marioHooks = window.__marioHooks = {
         exiting: !!player.exiting, piping: !!player.piping, noInput: !!player.noInput
       },
       enemies: enemies,
+      // Static or block tile only (what a pipe-blind v1 observation could see). Used by the observation-bug lesson.
+      isSolidTile: function(col, row) {
+        if (row < 0 || row >= 15 || col < 0) return false;
+        return !!(level.statics[row][col] || level.blocks[row][col]);
+      },
       // A tile cell is solid if a static/block tile occupies it OR a warp pipe's hitbox overlaps it. Pipes created
       // with putRealPipe live in level.pipes (not in the tile grids) but block Mario like walls.
       isSolid: function(col, row) {
