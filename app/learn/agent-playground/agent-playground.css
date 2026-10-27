@@ -79,3 +79,7 @@
     min-height: 220px;
   }
 }
+
+.agent-playground__intro {
+  width: min(100%, 1280px);
+}

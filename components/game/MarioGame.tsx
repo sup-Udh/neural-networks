@@ -3,6 +3,7 @@
 
 
 import { useEffect, useRef, useState } from "react";
+import type { MarioHooks } from "@/lib/mario/controller";
 
 // must load in this order
 const LEGACY_SCRIPTS = [
@@ -39,6 +40,8 @@ declare global {
     __marioGameHost?: HTMLElement;
     __marioGameDestroy?: () => void;
     __marioEnableAudio?: () => void;
+    /** Controller adapter created by game.js; see lib/mario/controller.ts MarioHooks. */
+    __marioHooks?: MarioHooks;
   }
 }
 
@@ -59,7 +62,16 @@ function loadScript(src: string, scripts: HTMLScriptElement[]): Promise<void> {
 }
 
 
-export default function MarioGame() {
+interface MarioGameProps {
+  /** Called once the game scripts have loaded and window.__marioHooks exists. */
+  onReady?: (hooks: MarioHooks) => void;
+}
+
+export default function MarioGame({ onReady }: MarioGameProps = {}) {
+  const onReadyRef = useRef(onReady);
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  });
   const hostRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<GameStatus>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +99,7 @@ export default function MarioGame() {
           if (cancelled) return;
         }
         setStatus("ready");
+        if (window.__marioHooks) onReadyRef.current?.(window.__marioHooks);
       } catch (cause) {
         if (cancelled) return;
         setStatus("error");

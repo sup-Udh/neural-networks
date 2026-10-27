@@ -1,5 +1,5 @@
-import { forward } from "@/lib/nn/network";
-import type { ForwardResult, NetworkModel } from "@/lib/nn/network";
+import { forward } from "../nn/network";
+import type { ForwardResult, NetworkModel } from "../nn/network";
 import { KeyDriver, selectAction } from "./actions";
 import type { KeyState, MarioAction } from "./actions";
 import { EpisodeTracker } from "./episode";

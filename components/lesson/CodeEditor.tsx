@@ -50,7 +50,7 @@ type ExampleId = keyof typeof EXAMPLES;
 const TOKEN = /(\/\/.*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|\b(function|return|const|let|var|if|else|for|while|true|false|null|undefined|new|of|in)\b|\b(\d+(?:\.\d+)?)\b|\b(Math)\b/g;
 
 /** Splits source into coloured spans. The text content is identical to the input, which keeps the overlay aligned. */
-function highlight(code: string): ReactNode[] {
+export function highlight(code: string): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
   let key = 0;
